@@ -1,11 +1,11 @@
 
-DEBUG = True
+DEBUG = False
 
 PID_FILE = "/tmp/migration-monitor.pid"
 LOG_FILE = "/tmp/migration-monitor.log"
 
 LIBVIRT = {
-    "URI": ["qemu+tcp://node1/system", "qemu+tcp://node2/system"],
+    "URI": ["qemu:///system"],
     "POLL_FREQ": 0.1,
 }
 

@@ -1,0 +1,7 @@
+---
+# Variables here are applicable to all host groups
+
+influxdb_url: http://monit-ent.vm.mirantis.net:8086
+influxdb_database: openstack
+influxdb_user: 
+influxdb_pass: 

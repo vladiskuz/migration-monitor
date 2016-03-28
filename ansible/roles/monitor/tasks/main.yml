@@ -1,0 +1,34 @@
+---
+# tasks for monitor role
+
+- name: Install git
+  apt: name=git
+
+# git clone
+- name: Git clone migration-monitor
+  git: repo=https://github.com/rk4n/migration-monitor
+       dest={{ work_dir }}
+
+# configure settings.py
+# current version is already configured
+
+# create venv
+- name: Create virtualenv
+  command: virtualenv .venv 
+  args:
+    chdir: "{{ work_dir }}"
+    creates: "{{ work_dir }}/{{virtualenv_name}}"
+
+# pip install libvirt
+- name: install libvirt-python
+  pip: name=libvirt-python virtualenv="{{ work_dir }}/{{virtualenv_name}}"
+
+# setup.py
+- name: Setup monitoring tool
+  command: "{{ work_dir }}/{{virtualenv_name}}/bin/python ./setup.py develop"
+  args:
+    chdir: "{{ work_dir }}"
+
+# run
+- name: Run monitoring
+  command: "{{ work_dir }}/{{virtualenv_name}}/bin/migrationmonitor"

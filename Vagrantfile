@@ -27,7 +27,10 @@ Vagrant.configure("2") do |config|
   
   config.vm.provision "shell", inline: <<-SHELL
     sudo apt-get update
-    sudo apt-get install -y htop qemu libvirt-bin libvirt-dev python-dev python-virtualenv python-libvirt virtinst
+    sudo apt-get install -y htop qemu libvirt-bin libvirt-dev python-dev python-virtualenv virtinst
+    sudo apt-get purge -qq -y --auto-remove chef puppet
   SHELL
+  config.vm.provision :ansible do |ansible|
+    ansible.playbook = "ansible/site.yml"
+  end
 end
-
