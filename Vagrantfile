@@ -25,12 +25,13 @@ Vagrant.configure("2") do |config|
     node.vm.network :private_network, ip: '192.168.42.12'
   end
   
-  config.vm.provision "shell", inline: <<-SHELL
-    sudo apt-get update
-    sudo apt-get install -y htop qemu libvirt-bin libvirt-dev python-dev python-virtualenv virtinst
-    sudo apt-get purge -qq -y --auto-remove chef puppet
-  SHELL
+  # config.vm.provision "shell", inline: <<-SHELL
+  #   sudo apt-get update
+  #   sudo apt-get install -y htop qemu libvirt-bin libvirt-dev python-dev python-virtualenv virtinst
+  #   sudo apt-get purge -qq -y --auto-remove chef puppet
+  # SHELL
   config.vm.provision :ansible do |ansible|
     ansible.playbook = "ansible/site.yml"
+    # ansible.playbook = "ansible/stop.yml"
   end
 end

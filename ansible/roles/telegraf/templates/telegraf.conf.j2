@@ -5,6 +5,8 @@
 {{ tag_name }} = "{{ value }}"
 {% endfor %}
 {% endif %}
+scenario = "{{ lm_run }}"
+run = "{{ lm_scenario }}"
 
 # Configuration for telegraf agent
 [agent]
@@ -36,7 +38,7 @@
 
 # Configuration for influxdb server to send metrics to
 [outputs.influxdb]
-  urls = ["{{ influxdb_url }}"] # required.
+  urls = ["http://{{ influxdb_host }}/{{ influxdb_port }}"] # required.
 
   database = "{{ influxdb_database }}" # required.
 

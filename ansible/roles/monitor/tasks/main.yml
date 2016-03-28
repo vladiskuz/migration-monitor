@@ -1,34 +1,40 @@
 ---
 # tasks for monitor role
 
+- name: check is already installed
+  stat: path={{ work_dir }}
+  register: st
+
 - name: Install git
   apt: name=git
+  when: st.stat.islnk is not defined
 
-# git clone
 - name: Git clone migration-monitor
   git: repo=https://github.com/rk4n/migration-monitor
        dest={{ work_dir }}
+  # when: st.stat.islnk is defined
 
-# configure settings.py
-# current version is already configured
+- name: Generate settings.py from template
+  template: src="settings.py.j2" dest="{{ work_dir }}/migrationmonitor/local_settings.py"
 
-# create venv
 - name: Create virtualenv
   command: virtualenv .venv 
   args:
     chdir: "{{ work_dir }}"
     creates: "{{ work_dir }}/{{virtualenv_name}}"
+  when: st.stat.islnk is defined
 
-# pip install libvirt
 - name: install libvirt-python
   pip: name=libvirt-python virtualenv="{{ work_dir }}/{{virtualenv_name}}"
+  when: st.stat.islnk is defined
 
-# setup.py
 - name: Setup monitoring tool
   command: "{{ work_dir }}/{{virtualenv_name}}/bin/python ./setup.py develop"
   args:
     chdir: "{{ work_dir }}"
+  when: st.stat.islnk is defined
 
-# run
 - name: Run monitoring
-  command: "{{ work_dir }}/{{virtualenv_name}}/bin/migrationmonitor"
+  command: "{{ work_dir }}/{{virtualenv_name}}/bin/python migrationmonitor/main.py"
+  args:
+    chdir: "{{ work_dir }}"

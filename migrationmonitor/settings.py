@@ -18,4 +18,17 @@ INFLUXDB = {
     "EVENTS_MEASUREMENT": 'libvirt_events',
     "JOBINFO_MEASUREMENT": 'libvirt_jobinfo',
     "RECONNECT": 10  # sec
+    
+    "TAGS": {
+        "scenario": "",
+        "run": "",
+    }
 }
+
+try:
+    from local_settings import *
+except SyntaxError as e:
+    print(str(e))
+    exit()
+else:
+    pass
