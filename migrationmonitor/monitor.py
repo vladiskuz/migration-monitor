@@ -46,7 +46,7 @@ def create_influx_reporter(influx_settings):
                             influx_settings["DATABASE"])
 
     def writer(timestamp, tags, fields, measurement):
-        tags.update(influxdb["TAGS"])
+        tags.update(influx_settings["TAGS"])
         json_body = [{
             "measurement": measurement,
             "tags": tags,
