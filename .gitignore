@@ -55,10 +55,11 @@ docs/_build/
 
 # PyBuilder
 target/
-local_settings.py
 *private_key
 .vagrant
 .idea
 20*/*
 summary.csv
 .venv
+local_settings.py
+
