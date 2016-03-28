@@ -142,8 +142,8 @@ def monitor_libvirt_events(libvirt_settings, influx_settings):
 
         m = migration_monitors
 
-        #  Started Migrated
-        if event == 2 and detail == 1:
+        #  Started Migrated                 Suspended  Paused
+        if (event == 2 and detail == 1) or (event == 3 and detail == 0) :
             if dom_name in m:
                 m[dom_name](POISON_PILL)
             else:
@@ -154,8 +154,8 @@ def monitor_libvirt_events(libvirt_settings, influx_settings):
 
             info("Migration for libvirt:%s for domain:%s STARTED." % (uri, dom_name))
             debug("Starting monitoring for domain:%s" % dom_name)
-        # Resumed Migrated
-        elif event == 4 and detail == 1:
+        # Resumed Migrated                    Stopped Migrated
+        elif (event == 4 and detail == 1) or (event == 5 and detail == 3):
             if dom_name not in m:
                 error("Error, received stop event for migration not being monitored.")
                 return
