@@ -17,7 +17,7 @@ INFLUXDB = {
     "DATABASE": 'openstack',
     "EVENTS_MEASUREMENT": 'libvirt_events',
     "JOBINFO_MEASUREMENT": 'libvirt_jobinfo',
-    "RECONNECT": 10  # sec
+    "RECONNECT": 10,  # sec
     
     "TAGS": {
         "scenario": "",
