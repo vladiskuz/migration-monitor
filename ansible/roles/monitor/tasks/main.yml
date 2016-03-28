@@ -40,7 +40,7 @@
 
 - name: Kill monitoring process
   command: "pkill -F {{ monitoring_pid }}"
-  when: st.stat.islnk is defined
+  when: st_pid.stat.islnk is defined
 
 - name: Run monitoring
   command: "{{ work_dir }}/{{virtualenv_name}}/bin/python migrationmonitor/main.py"

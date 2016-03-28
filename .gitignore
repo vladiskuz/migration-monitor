@@ -63,3 +63,4 @@ summary.csv
 .venv
 local_settings.py
 
+*.retry

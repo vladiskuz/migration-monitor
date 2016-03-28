@@ -11,5 +11,4 @@ Run:
 
 Run:
 
-	$ ansible-playbook stop.yml -i hosts --extra-vars '{"lm_run":"1","lm_scenario":"foo"}'
-
+	$ ansible-playbook stop.yml -i hosts
