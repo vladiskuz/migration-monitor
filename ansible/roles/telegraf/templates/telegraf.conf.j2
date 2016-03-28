@@ -38,7 +38,7 @@ run = "{{ lm_scenario }}"
 
 # Configuration for influxdb server to send metrics to
 [outputs.influxdb]
-  urls = ["http://{{ influxdb_host }}/{{ influxdb_port }}"] # required.
+  urls = ["http://{{ influxdb_host }}:{{ influxdb_port }}"] # required.
 
   database = "{{ influxdb_database }}" # required.
 
