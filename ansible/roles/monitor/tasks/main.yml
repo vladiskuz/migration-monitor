@@ -12,7 +12,6 @@
 - name: Git clone migration-monitor
   git: repo=https://github.com/rk4n/migration-monitor
        dest={{ work_dir }}
-  # when: st.stat.islnk is defined
 
 - name: Generate settings.py from template
   template: src="settings.py.j2" dest="{{ work_dir }}/migrationmonitor/local_settings.py"
@@ -22,19 +21,29 @@
   args:
     chdir: "{{ work_dir }}"
     creates: "{{ work_dir }}/{{virtualenv_name}}"
-  when: st.stat.islnk is defined
+  when: st.stat.islnk is not defined
 
 - name: install libvirt-python
   pip: name=libvirt-python virtualenv="{{ work_dir }}/{{virtualenv_name}}"
-  when: st.stat.islnk is defined
+  when: st.stat.islnk is not defined
 
 - name: Setup monitoring tool
   command: "{{ work_dir }}/{{virtualenv_name}}/bin/python ./setup.py develop"
   args:
     chdir: "{{ work_dir }}"
+  when: st.stat.islnk is not defined
+
+
+- name: check if monitor is running
+  stat: path="{{ monitoring_pid }}"
+  register: st_pid
+
+- name: Kill monitoring process
+  command: "pkill -F {{ monitoring_pid }}"
   when: st.stat.islnk is defined
 
 - name: Run monitoring
   command: "{{ work_dir }}/{{virtualenv_name}}/bin/python migrationmonitor/main.py"
   args:
     chdir: "{{ work_dir }}"
+

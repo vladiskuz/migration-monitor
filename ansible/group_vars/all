@@ -7,8 +7,8 @@ influxdb_database: openstack
 influxdb_user: 
 influxdb_pass: 
 
-lm_run: 1
-lm_scenario: 1
+# lm_run: 2
+# lm_scenario: 2
 
 
 monitoring_pid: /tmp/migration-monitor.pid

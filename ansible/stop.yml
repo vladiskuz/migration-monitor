@@ -1,16 +1,17 @@
 ---
-
-- hosts: all
-  sudo: yes
-  roles:
-  - stopper
-
-# - hosts: hard
-#   remote_user: root
-#   roles:
-#   - stopper
-
-# - hosts: virtual
+# Vagrant debug
+# 
+# - hosts: all
 #   sudo: yes
 #   roles:
 #   - stopper
+
+- hosts: hard
+  remote_user: root
+  roles:
+  - stopper
+
+- hosts: virtual
+  sudo: yes
+  roles:
+  - stopper
