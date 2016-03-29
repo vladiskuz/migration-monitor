@@ -2,7 +2,6 @@
 - hosts: hard
   vars:
     nova_conf: /etc/nova/nova.conf
-    
     # nova_compress: yes
     # nova_autoconverge: yes
     nova_default_flags: VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRATE_LIVE,VIR_MIGRATE_PERSIST_DEST

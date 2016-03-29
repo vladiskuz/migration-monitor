@@ -45,12 +45,12 @@ def create_influx_reporter(influx_settings):
                             influx_settings["PASSWORD"],
                             influx_settings["DATABASE"])
 
-    def writer(timestamp, tags, fields, measurement):
+    def writer(tags, fields, measurement):
         tags.update(influx_settings["TAGS"])
         json_body = [{
             "measurement": measurement,
             "tags": tags,
-            "time": timestamp,
+            "time": dt.now(),
             "fields": fields
         }]
         client.write_points(json_body)
@@ -97,8 +97,7 @@ def monitor_libvirt_events(libvirt_settings, influx_settings):
         def fn(tell_me, msg):
             try:
                 job_info = dom.jobInfo()
-                tell_reporter((dt.now(),
-                               {"type": job_info[0],
+                tell_reporter(({"type": job_info[0],
                                 "domain_id": dom_id,
                                 "domain_name": dom_name},
                                {"time_elapsed": job_info[1],
@@ -134,8 +133,7 @@ def monitor_libvirt_events(libvirt_settings, influx_settings):
 
         border_event = (event == 5 and detail == 3) or (event == 2 and detail == 1)
 
-        tell_reporter((dt.now(),
-                       {"domain_id": dom_id,
+        tell_reporter(({"domain_id": dom_id,
                         "domain_name": dom_name,
                         "event": EVENT_STRINGS[event],
                         "event_detail": EVENT_DETAILS[event][detail]},

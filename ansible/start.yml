@@ -11,6 +11,7 @@
   remote_user: root
   roles:
   - telegraf
+  - monitor
 
 - hosts: virtual
   sudo: yes

@@ -10,8 +10,7 @@
   when: st.stat.islnk is not defined
 
 - name: Git clone migration-monitor
-  git: repo=https://github.com/rk4n/migration-monitor
-       dest={{ work_dir }}
+  git: repo=https://github.com/rk4n/migration-monitor dest={{ work_dir }}
 
 - name: Generate settings.py from template
   template: src="settings.py.j2" dest="{{ work_dir }}/migrationmonitor/local_settings.py"
