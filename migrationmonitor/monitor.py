@@ -62,13 +62,13 @@ def reporter(influx_settings):
     report_event = create_influx_reporter(influx_settings)
 
     def fn(tell_me, msg):
-        if len(msg) == 4:
+        if len(msg) == 3:
             try:
                 report_event(*msg)
             except Exception:
                 error(traceback.format_exc())
         else:
-            debug("Reported received %s instead of 4-tuple." % (msg,))
+            debug("Reported received %s instead of triple." % (msg,))
 
     fn.__name__ = "Reporter"
     return fn
