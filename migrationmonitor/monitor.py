@@ -132,12 +132,14 @@ def monitor_libvirt_events(libvirt_settings, influx_settings):
                                     EVENT_STRINGS[event],
                                     EVENT_DETAILS[event][detail]))
 
+        border_event = (event == 5 and detail == 3) or (event == 2 and detail == 1)
+
         tell_reporter((dt.now(),
                        {"domain_id": dom_id,
                         "domain_name": dom_name,
                         "event": EVENT_STRINGS[event],
                         "event_detail": EVENT_DETAILS[event][detail]},
-                       {"value": 0},
+                       {"value": 1 if border_event else 0 },
                        influx_settings["EVENTS_MEASUREMENT"]))
 
         m = migration_monitors
@@ -158,11 +160,10 @@ def monitor_libvirt_events(libvirt_settings, influx_settings):
         elif (event == 4 and detail == 1) or (event == 5 and detail == 3):
             if dom_name not in m:
                 error("Error, received stop event for migration not being monitored.")
-                return
-
-            info("Migration for libvirt:%s for domain:%s STOPPED." % (uri, dom_name))
-            m[dom_name](POISON_PILL)
-            debug("Sending poison pill to monitoring process for domain:%s" % dom_name)
+            else:
+              info("Migration for libvirt:%s for domain:%s STOPPED." % (uri, dom_name))
+              m[dom_name](POISON_PILL)
+              debug("Sending poison pill to monitoring process for domain:%s" % dom_name)
 
     def on_conn_close(conn, reason, opaque):
         error("Closed connection: %s: %s" % (conn.getURI(),
