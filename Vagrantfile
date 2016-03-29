@@ -32,6 +32,7 @@ Vagrant.configure("2") do |config|
   SHELL
   config.vm.provision :ansible do |ansible|
     ansible.playbook = "ansible/start.yml"
+    # ansible.playbook = "ansible/nova_flags.yml"
     # ansible.playbook = "ansible/stop.yml"
   end
 end

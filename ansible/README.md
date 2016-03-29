@@ -12,3 +12,10 @@ Run:
 Run:
 
 	$ ansible-playbook stop.yml -i hosts
+
+
+## Update nova flags and restart n-cpu
+
+Run:
+
+	$ ansible-playbook nova_flags.yml -i hosts --extra-vars '{"nova_compress":"yes","nova_autoconverge":"no"}'
