@@ -1,6 +1,6 @@
 ---
 # Vagrant debug
-# 
+#
 # - hosts: all
 #   sudo: yes
 #   roles:
@@ -14,6 +14,8 @@
   - monitor
 
 - hosts: virtual
+  remote_user: ubuntu
   sudo: yes
   roles:
+  - dns
   - telegraf

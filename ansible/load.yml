@@ -6,8 +6,8 @@
 #   roles:
 #   - stopper
 
-- hosts: hard
-  remote_user: root
+- hosts: virtual
+  remote_user: ubuntu
+  sudo: yes
   roles:
-  - stopper
-
+  - load_test

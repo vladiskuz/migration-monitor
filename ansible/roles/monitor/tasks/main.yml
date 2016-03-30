@@ -11,12 +11,13 @@
 
 - name: Git clone migration-monitor
   git: repo=https://github.com/rk4n/migration-monitor dest={{ work_dir }}
+  when: st.stat.islnk is not defined
 
 - name: Generate settings.py from template
   template: src="settings.py.j2" dest="{{ work_dir }}/migrationmonitor/local_settings.py"
 
 - name: Create virtualenv
-  command: virtualenv .venv 
+  command: virtualenv .venv
   args:
     chdir: "{{ work_dir }}"
     creates: "{{ work_dir }}/{{virtualenv_name}}"
