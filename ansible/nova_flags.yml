@@ -2,27 +2,37 @@
 - hosts: hard
   vars:
     nova_conf: /etc/nova/nova.conf
-    # nova_compress: yes
-    # nova_autoconverge: yes
+    
+    nova_compress: false
+    nova_autoconverge: false
+
+    compressed_flag: ""
+    autoconverge_flag: ""
+
     nova_default_flags: VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRATE_LIVE,VIR_MIGRATE_PERSIST_DEST
+
+    nova_concurrent_migrations: 0
   
   remote_user: stack
   become_method: sudo
 
   tasks:
-  - set_fact:
-      compressed_flag: ",VIR_MIGRATE_COMPRESSED"
-      when: nova_compress
+  - set_fact: compressed_flag=",VIR_MIGRATE_COMPRESSED"
+    when: nova_compress
 
-  - set_fact:
-      autoconverge_flag: ",VIR_MIGRATE_AUTO_CONVERGE"
-      when: nova_autoconverge
+  - set_fact: autoconverge_flag=",VIR_MIGRATE_AUTO_CONVERGE"
+    when: nova_autoconverge
 
   - name: Backup nova.conf
     command: "cp -f {{ nova_conf }} {{ nova_conf }}.bak"
     become: yes
-  - name: Set default flags
-    command: "sed -i 's/live_migration_flag=.*$/live_migration_flag={{ nova_default_flags }}{{ compressed_flag | default(\"\") }}{{ autoconverge_flag | default(\"\") }}/g' {{ nova_conf }}"
+
+  - name: Set Nova flags
+    lineinfile: dest={{ nova_conf }} regexp='^(.*)live_migration_flag=(.*)$' line='live_migration_flag={{ nova_default_flags }}{{ compressed_flag | default(\"\") }}{{ autoconverge_flag | default(\"\") }}' 
+    become: yes
+
+  - name: Update max_concurrent_live_migrations
+    lineinfile: dest={{ nova_conf }} regexp='^(.*)max_concurrent_live_migrations(.*)$' line='max_concurrent_live_migrations={{ nova_concurrent_migrations }}' 
     become: yes
 
   - name: Send Ctrl-C to n-cpu screen of devstack
