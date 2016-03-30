@@ -18,4 +18,10 @@ Run:
 
 Run:
 
-	$ ansible-playbook nova_flags.yml -i hosts --extra-vars '{"nova_compress":"yes","nova_autoconverge":"no"}'
+	$ ansible-playbook nova_flags.yml -i hosts --extra-vars '{"nova_compress":true, "nova_autoconverge":false, "nova_concurrent_migrations": 1}'
+
+	$ ansible-playbook nova_flags.yml -i hosts --extra-vars '{"nova_concurrent_migrations": 10}'
+
+	$ ansible-playbook nova_flags.yml -i hosts --extra-vars '{"nova_compress":true}'
+
+
