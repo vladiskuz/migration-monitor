@@ -1,13 +1,13 @@
-import traceback
-from datetime import datetime as dt
-
+import time
 import libvirt
+import traceback
+
 from influxdb import InfluxDBClient
 
 from logger import debug, error, info
 from actor import actor, POISON_PILL
 from util import defer
-import time
+
 
 EVENT_DETAILS = (("Added", "Updated"),
                  ("Removed",),
@@ -50,7 +50,7 @@ def create_influx_reporter(influx_settings):
         json_body = [{
             "measurement": measurement,
             "tags": tags,
-            "time": dt.now(),
+            "time": int(time.time() * 1000000) * 1000,
             "fields": fields
         }]
         client.write_points(json_body)
