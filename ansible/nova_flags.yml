@@ -2,7 +2,7 @@
 - hosts: hard
   vars:
     nova_conf: /etc/nova/nova.conf
-    
+
     nova_compress: false
     nova_autoconverge: false
 
@@ -12,7 +12,7 @@
     nova_default_flags: VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRATE_LIVE,VIR_MIGRATE_PERSIST_DEST
 
     nova_concurrent_migrations: 0
-  
+
   remote_user: stack
   become_method: sudo
 
@@ -28,17 +28,17 @@
     become: yes
 
   - name: Set Nova flags
-    lineinfile: dest={{ nova_conf }} regexp='^(.*)live_migration_flag=(.*)$' line='live_migration_flag={{ nova_default_flags }}{{ compressed_flag | default(\"\") }}{{ autoconverge_flag | default(\"\") }}' 
+    ini_file: dest={{ nova_conf }} section='libvirt' option='live_migration_flag' value='{{ nova_default_flags }}{{ compressed_flag | default("") }}{{ autoconverge_flag | default("") }}' state='present'
     become: yes
 
   - name: Update max_concurrent_live_migrations
-    lineinfile: dest={{ nova_conf }} regexp='^(.*)max_concurrent_live_migrations(.*)$' line='max_concurrent_live_migrations={{ nova_concurrent_migrations }}' 
+    ini_file: dest={{ nova_conf }} section='DEFAULT' option='max_concurrent_live_migrations' value='{{ nova_concurrent_migrations }}' state='present'
     become: yes
 
   - name: Send Ctrl-C to n-cpu screen of devstack
     shell: "screen -X at n-cpu stuff $'\\003'"
     become: no
 
-  - name: Restart n-cpu 
+  - name: Restart n-cpu
     shell: "screen -X at n-cpu stuff $'\\033[A\\015'"
     become: no
