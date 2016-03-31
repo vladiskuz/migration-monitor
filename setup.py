@@ -6,7 +6,8 @@ setup(
     packages=find_packages(),
     install_requires=[#'libvirt-python==1.3.2',
                       'influxdb>=2.12.0',
-                      'daemonize>=2.4.4'],
+                      'daemonize>=2.4.4',
+                      'python-dateutil'],
     entry_points={
         'console_scripts': [
             'migrationmonitor = migrationmonitor.main:main',
