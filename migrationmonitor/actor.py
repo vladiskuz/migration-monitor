@@ -20,8 +20,10 @@ def actor(fn, timeout=THREAD_LIFE_TIMEOUT):
                 debug("%s got poison pill, exiting." % (fn.__name__,))
                 break
 
-            fn(tell, item)
-            q.task_done()
+            try:
+                fn(tell, item)
+            finally:
+                q.task_done()
 
     t = Thread(target=worker, name=fn.__name__)
     t.daemon = True

@@ -8,7 +8,6 @@ from logger import debug, error, info
 from actor import actor, POISON_PILL
 from util import defer
 
-
 EVENT_DETAILS = (("Added", "Updated"),
                  ("Removed",),
                  ("Booted", "Migrated", "Restored", "Snapshot", "Wakeup"),
@@ -60,7 +59,6 @@ def create_influx_reporter(influx_settings):
 
 def reporter(influx_settings):
     report_event = create_influx_reporter(influx_settings)
-
     def fn(tell_me, msg):
         if len(msg) == 3:
             try:
@@ -90,35 +88,27 @@ def monitor_libvirt_events(libvirt_settings, influx_settings):
 
         return reconnect_fn
 
-    def dom_job_monitor(dom):
-        dom_id = dom.ID()
-        dom_name = dom.name()
-
+    def dom_job_monitor(conn, dom_name):
+        _uri = conn.getURI()
+        _conn = libvirt.openReadOnly(_uri)
         def fn(tell_me, msg):
+            cmd, dom_id = msg
             try:
-                job_info = dom.jobInfo()
-                tell_reporter(({"type": job_info[0],
-                                "domain_id": dom_id,
-                                "domain_name": dom_name},
-                               {"time_elapsed": job_info[1],
-                                "time_remaining": job_info[2],
-                                "data_total": job_info[3],
-                                "data_processed": job_info[4],
-                                "data_remaining": job_info[5],
-                                "mem_total": job_info[6],
-                                "mem_processed": job_info[7],
-                                "mem_remaining": job_info[8],
-                                "file_total": job_info[9],
-                                "file_processed": job_info[10],
-                                "file_remaining": job_info[11]},
-                               influx_settings["JOBINFO_MEASUREMENT"]))
+                dom = _conn.lookupByID(dom_id)
+                job_info = dom.jobStats()
 
-                debug("Domain: %s data_processed:%s" % (dom_name, job_info[4]))
-            except Exception:
-                error(traceback.format_exc())
+                debug("jobStats: {0}".format(job_info))
+                tell_reporter(({"domain_id": dom_id,
+                                "domain_name": dom_name},
+                                job_info,
+                                influx_settings["JOBINFO_MEASUREMENT"]))
+
+            except Exception as ex:
+                if "Domain not found" not in ex.message:
+                    error(traceback.format_exc())
             finally:
-                tell_me("continue")
                 time.sleep(libvirt_settings["POLL_FREQ"])
+                tell_me(("continue", dom_id))
 
         fn.__name__ = "DomJobMonitor_%s" % (dom_name,)
         return fn
@@ -127,49 +117,35 @@ def monitor_libvirt_events(libvirt_settings, influx_settings):
         uri = conn.getURI()
         dom_id = dom.ID()
         dom_name = dom.name()
-        debug("%s: %s(%s) %s %s" % (uri, dom_name, dom_id,
+        info("====> %s(%s) %s %s" % (dom_name, dom_id,
                                     EVENT_STRINGS[event],
                                     EVENT_DETAILS[event][detail]))
 
-        border_event = (event == 5 and detail == 3) or (event == 2 and detail == 1)
+        # Migration start events
+        started_migrated = (event == 2 and detail == 1) # Started Migrated (on dst)
+        suspended_paused = (event == 3 and detail == 0) # Suspended Paused (on src)
+
+        # Migration end events
+        resumed_migrated = (event == 4 and detail == 1) # Resumed Migrated (on dst)
+        stopped_migrated = (event == 5 and detail == 3) # Stopped Migrated (on src)
+        stopped_failed   = (event == 5 and detail == 5) # Stopped Failed (on dst)
+
+        boundary_event = stopped_migrated or started_migrated
 
         tell_reporter(({"domain_id": dom_id,
                         "domain_name": dom_name,
                         "event": EVENT_STRINGS[event],
                         "event_detail": EVENT_DETAILS[event][detail]},
-                       {"value": 1 if border_event else 0 },
+                       {"value": 1 if boundary_event else 0 },
                        influx_settings["EVENTS_MEASUREMENT"]))
-
-        m = migration_monitors
-
-        #  Started Migrated                 Suspended  Paused
-        if (event == 2 and detail == 1) or (event == 3 and detail == 0) :
-            if dom_name in m:
-                m[dom_name](POISON_PILL)
-            else:
-                m[dom_name] = {}
-
-            m[dom_name] = actor(dom_job_monitor(dom))
-            m[dom_name]('go')
-
-            info("Migration for libvirt:%s for domain:%s STARTED." % (uri, dom_name))
-            debug("Starting monitoring for domain:%s" % dom_name)
-        # Resumed Migrated                    Stopped Migrated
-        elif (event == 4 and detail == 1) or (event == 5 and detail == 3):
-            if dom_name not in m:
-                error("Error, received stop event for migration not being monitored.")
-            else:
-              info("Migration for libvirt:%s for domain:%s STOPPED." % (uri, dom_name))
-              m[dom_name](POISON_PILL)
-              debug("Sending poison pill to monitoring process for domain:%s" % dom_name)
 
     def on_conn_close(conn, reason, opaque):
         error("Closed connection: %s: %s" % (conn.getURI(),
                                              REASON_STRINGS[reason]))
-
         if reason == 0:
             defer(reconnect(conn),
                   seconds=influx_settings["RECONNECT"])
+
 
     def connect(uri):
         vc = libvirt.openReadOnly(uri)
@@ -178,13 +154,29 @@ def monitor_libvirt_events(libvirt_settings, influx_settings):
         vc.setKeepAlive(5, 3)
         connections.append(vc)
 
+        ds = vc.listDomainsID()
+        m = migration_monitors
+
+        for d_id in ds:
+            dom = vc.lookupByID(d_id)
+            dom_name = dom.name()
+            m[dom_name] = actor(dom_job_monitor(vc, dom_name))
+            m[dom_name](('go', d_id))
+
+
+
     for u in libvirt_uris:
         connect(u)
 
     def closer():
+        for dom_name in migration_monitors:
+            migration_monitors[dom_name](POISON_PILL)
+            debug("Sending poison pill to monitoring process for domain:%s" % dom_name)
+
         tell_reporter(POISON_PILL)
         for c in connections:
             debug("Closing " + c.getURI())
             c.close()
 
     return closer
+
