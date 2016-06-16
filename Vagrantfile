@@ -33,7 +33,7 @@ Vagrant.configure("2") do |config|
 
   config.vm.provision "shell", inline: <<-SHELL
     sudo apt-get update
-    sudo apt-get install -y htop qemu libvirt-bin libvirt-dev python-dev python-virtualenv virtinst emacs python-libvirt
+    sudo apt-get install -y htop qemu libvirt-bin libvirt-dev python-dev python-virtualenv python-pip virtinst emacs python-libvirt bridge-utils stress
     sudo apt-get purge -qq -y --auto-remove chef puppet
 
     sudo sed -i 's|#listen_tls = 0|listen_tls = 0|' /etc/libvirt/libvirtd.conf
@@ -44,7 +44,6 @@ Vagrant.configure("2") do |config|
     sudo sed -i 's|libvirtd_opts="-d"|libvirtd_opts="-d -l"|' /etc/default/libvirt-bin
 
     sudo service libvirt-bin restart
-    wget https://launchpad.net/cirros/trunk/0.3.0/+download/cirros-0.3.0-x86_64-disk.img
 
     sudo usermod -a -G libvirtd vagrant
 
@@ -55,6 +54,6 @@ Vagrant.configure("2") do |config|
     sudo pip install watchdog
   SHELL
   # config.vm.provision :ansible do |ansible|
-  #   # ansible.playbook = "ansible/start.yml"
+  #   ansible.playbook = "ansible/start.yml"
   # end
 end

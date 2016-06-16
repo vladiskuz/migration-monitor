@@ -12,6 +12,7 @@
     nova_default_flags: VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRATE_LIVE,VIR_MIGRATE_PERSIST_DEST
 
     nova_concurrent_migrations: 0
+    nova_max_downtime: 500
 
   remote_user: stack
   become_method: sudo
@@ -35,10 +36,10 @@
     ini_file: dest={{ nova_conf }} section='DEFAULT' option='max_concurrent_live_migrations' value='{{ nova_concurrent_migrations }}' state='present'
     become: yes
 
-  - name: Send Ctrl-C to n-cpu screen of devstack
-    shell: "screen -X at n-cpu stuff $'\\003'"
-    become: no
+  - name: Update live_migration_downtime
+    ini_file: dest={{ nova_conf }} section='libvirt' option='live_migration_downtime' value='{{ nova_max_downtime }}' state='present'
+    become: yes
 
   - name: Restart n-cpu
-    shell: "screen -X at n-cpu stuff $'\\033[A\\015'"
+    shell: "screen -X at n-cpu stuff $'\\003' && screen -X at n-cpu stuff $'\\033[A\\015'"
     become: no

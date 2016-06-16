@@ -3,6 +3,9 @@
 #
 # - hosts: all
 #   sudo: yes
+#   vars:
+#     lm_run: 1
+#     lm_scenario: 1
 #   roles:
 #   - telegraf
 #   - monitor
