@@ -5,7 +5,7 @@ python:
   # - "3.2"
   # - "3.3"
   # - "3.4"
-  - "3.5"
+  # - "3.5"
   # - "3.5-dev"
   # - "nightly"
 
@@ -13,5 +13,6 @@ install:
   - sudo apt-get install -y qemu-kvm libvirt-bin virt-manager
 
 script:
+  - sudo chmod o+rwx /var/run/libvirt/libvirt-sock
   - virsh -c qemu:///system list
 
