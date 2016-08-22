@@ -1,4 +1,10 @@
 language: python
+
+sudo: required
+
+services:
+  - docker
+
 python:
   # - "2.6"
   - "2.7"
@@ -15,6 +21,5 @@ install:
 script:
   - wget http://download.cirros-cloud.net/0.3.4/cirros-0.3.4-x86_64-disk.img
   - sudo chmod o+rwx /var/run/libvirt/libvirt-sock
-  - virsh -c qemu:///system list
   - virt-install --connect qemu:///system -n cirros_1 -r 256 --os-type=linux --disk path=./cirros-0.3.4-x86_64-disk.img,device=disk,format=qcow2 --vcpus=1 --noautoconsole --import
-
+  - virsh -c qemu:///system list
