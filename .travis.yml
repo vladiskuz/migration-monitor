@@ -2,26 +2,21 @@ language: python
 
 sudo: required
 
-services:
-  - docker
-
 python:
   # - "2.6"
   - "2.7"
   # - "3.2"
   # - "3.3"
   # - "3.4"
-  # - "3.5"
+  - "3.5"
   # - "3.5-dev"
   # - "nightly"
 
 install:
-  - sudo apt-get install -y qemu-kvm libvirt-bin virt-manager
+  - pip install libvirt-python
+  - python setup.py develop
 
 script:
-  - wget http://download.cirros-cloud.net/0.3.4/cirros-0.3.4-x86_64-disk.img
-  - chmod o+rw ./cirros-0.3.4-x86_64-disk.img
-  - sudo chmod o+rwx /var/run/libvirt/libvirt-sock
-  - virt-install --connect qemu:///system -n cirros_1 -r 256 --os-type=linux --disk path=./cirros-0.3.4-x86_64-disk.img,device=disk,format=qcow2 --vcpus=1 --noautoconsole --import
-  - virsh -c qemu:///system list
-  - docker images
+  - which migrationmonitor
+  - echo OK
+
