@@ -1,16 +1,17 @@
 language: python
+cache: pip
 
 sudo: required
 
 python:
-  # - "2.6"
+  #- "2.6"
   - "2.7"
-  # - "3.2"
-  # - "3.3"
-  # - "3.4"
+  #- "3.2"
+  #- "3.3"
+  #- "3.4"
   - "3.5"
-  # - "3.5-dev"
-  # - "nightly"
+  #- "3.5-dev"
+  #- "nightly"
 
 install:
   - sudo apt-get install -y libvirt-bin libvirt-dev python-libvirt
