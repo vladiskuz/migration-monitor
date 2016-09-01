@@ -13,7 +13,7 @@ python:
   # - "nightly"
 
 install:
-  - sudo apt-get install -y libvirt-bin libvirt-devel
+  - sudo apt-get install -y libvirt-bin libvirt-dev
   - pip install libvirt-python
   - python setup.py develop
 
