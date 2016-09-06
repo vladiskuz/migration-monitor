@@ -1,5 +1,4 @@
-
-DEBUG = False
+DEBUG = True
 
 PID_FILE = "/tmp/migration-monitor.pid"
 LOG_FILE = "/tmp/migration-monitor.log"
@@ -10,7 +9,7 @@ LIBVIRT = {
 }
 
 INFLUXDB = {
-    "HOST": 'monit-ent.vm.mirantis.net',
+    "HOST": '172.18.66.94',
     "PORT": '8086',
     "USERNAME": '',
     "PASSWORD": '',
@@ -24,11 +23,3 @@ INFLUXDB = {
         "run": "",
     }
 }
-
-try:
-    from local_settings import *
-except SyntaxError as e:
-    print(str(e))
-    exit()
-else:
-    pass
