@@ -116,6 +116,8 @@ class LibvirtMonitor(object):
         for dom_id in self.migration_monitors:
             dom_actor = self.migration_monitors[dom_id]
             dom_actor.stop()
+            log.debug("Destroy DomJobMonitorActor for domain with id %s",
+                      dom_id)
 
         db.stop()
         for conn in self.connections:
