@@ -37,10 +37,3 @@ class InfluxDBActor(actor.BaseActor):
             "fields": fields
         }]
         self.db_client.write_points(json_body)
-
-
-db_actor = InfluxDBActor()
-db_actor.start()
-
-write = db_actor.add_task_to_queue
-stop = db_actor.stop

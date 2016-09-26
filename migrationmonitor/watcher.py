@@ -4,7 +4,6 @@ import time
 import libvirt
 
 import actor
-import db
 import logger as log
 import settings
 import threading
@@ -17,20 +16,22 @@ class DomsWatcher(threading.Thread):
     handling.
     """
     
-    def __init__(self, conn, migration_monitors, interval=0.15):
+    def __init__(self, conn, migration_monitors, db, interval=0.15):
         super(DomsWatcher, self).__init__()
         self.daemon = True
 
         self.conn = conn
         self.interval = interval
         self.migration_monitors = migration_monitors
+        self.db = db
 
         self.new_dom_ids_q = Queue()
 
         doms_job_monitor_thread = DomsJobMonitorActorCreator(
             conn,
             self.new_dom_ids_q,
-            self.migration_monitors)
+            self.migration_monitors,
+            self.db)
         doms_job_monitor_thread.start()
 
     def run(self):
@@ -66,12 +67,14 @@ class DomsJobMonitorActorCreator(threading.Thread):
     that will track libvirt job stats about the particular domain.
     """
 
-    def __init__(self, conn, new_dom_ids_q, migration_monitors, interval=0.15):
+    def __init__(self, conn, new_dom_ids_q,
+                 migration_monitors, db, interval=0.15):
         super(DomsJobMonitorActorCreator, self).__init__()
         self.daemon = True
         self.conn = conn
         self.new_dom_ids_q = new_dom_ids_q
         self.migration_monitors = migration_monitors
+        self.db = db
         self.interval = interval
 
     def run(self):
@@ -83,7 +86,8 @@ class DomsJobMonitorActorCreator(threading.Thread):
                 dom_actor = DomJobMonitorActor(
                     self.conn,
                     dom_id,
-                    self.migration_monitors)
+                    self.migration_monitors,
+                    self.db)
                 self.migration_monitors[dom_id] = dom_actor
                 dom_actor.start()
                 dom_actor.add_task_to_queue(('start_job_monitoring', dom_id))
@@ -102,12 +106,13 @@ class DomJobMonitorActor(actor.BaseActor):
     """Gets domain job stats and put it into database.
     """
 
-    def __init__(self, conn, dom_id, migration_monitors):
+    def __init__(self, conn, dom_id, migration_monitors, db):
         super(DomJobMonitorActor, self).__init__()
         self.conn = conn
         self.dom_id = dom_id
         self.settings = settings
         self.migration_monitors = migration_monitors
+        self.db = db
 
     def _run(self, msg):
         cmd, dom_id = msg
@@ -115,7 +120,7 @@ class DomJobMonitorActor(actor.BaseActor):
             dom = self.conn.lookupByID(self.dom_id)
             job_info = dom.jobStats()
             log.debug("jobStats: {0}".format(job_info))
-            db.write(({
+            self.db.add_task_to_queue(({
                 "domain_id": self.dom_id,
                 "domain_name": dom.name()},
                 job_info,
