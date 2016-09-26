@@ -13,10 +13,10 @@
   apt: name=git
 
 - name: Git clone migration-monitor from github
-  git: repo={{ source_repo }} dest={{ work_dir }}
+  git: repo={{ source_repo }} version={{ source_branch }} dest={{ work_dir }}
 
 - name: Generate settings.py from template
-  template: src="settings.py.j2" dest="{{ work_dir }}/migrationmonitor/local_settings.py"
+  template: src="settings.py.j2" dest="{{ work_dir }}/migrationmonitor/settings.py"
 
 - name: Create virtualenv
   command: virtualenv .venv

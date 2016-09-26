@@ -9,7 +9,7 @@ LIBVIRT = {
 }
 
 INFLUXDB = {
-    "HOST": '172.18.66.94',
+    "HOST": 'monit-ent.vm.mirantis.net',
     "PORT": '8086',
     "USERNAME": '',
     "PASSWORD": '',
