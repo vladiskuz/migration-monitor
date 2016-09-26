@@ -1,0 +1,20 @@
+---
+# Variables here are applicable to all host groups
+
+influxdb_host: monit-ent.vm.mirantis.net
+influxdb_port: 8086
+influxdb_database: openstack
+influxdb_user: 
+influxdb_pass: 
+
+lm_run: 1
+lm_scenario: 1
+
+
+monitoring_pid: /tmp/migration-monitor.pid
+
+
+work_dir: /opt/migration-monitor
+virtualenv_name: .venv
+source_repo: https://github.com/vladiskuz/migration-monitor
+source_branch: dev

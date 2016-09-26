@@ -1,32 +1,32 @@
 from Queue import Queue
-from threading import Thread
+import threading
 
-from logger import debug
-
-THREAD_LIFE_TIMEOUT = 1000
 POISON_PILL = object()
 
 
-def actor(fn, timeout=THREAD_LIFE_TIMEOUT):
-    q = Queue()
+class BaseActor(threading.Thread):
 
-    def tell(item):
-        q.put(item)
+    def __init__(self):
+        super(BaseActor, self).__init__()
+        self.daemon = True
+        self.q = Queue()
 
-    def worker():
+    def tell(self, item):
+        self.q.put(item)
+
+    def run(self):
         while True:
-            item = q.get()
+            item = self.q.get()
             if item is POISON_PILL:
-                debug("%s got poison pill, exiting." % (fn.__name__,))
                 break
 
             try:
-                fn(tell, item)
+                self._on_receive(item)
             finally:
-                q.task_done()
+                self.q.task_done()
 
-    t = Thread(target=worker, name=fn.__name__)
-    t.daemon = True
-    t.start()
+    def _on_receive(self, item):
+        raise NotImplemented()
 
-    return tell
+    def stop(self):
+        self.q.put(POISON_PILL)

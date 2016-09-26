@@ -1,5 +1,4 @@
-
-DEBUG = False
+DEBUG = True
 
 PID_FILE = "/tmp/migration-monitor.pid"
 LOG_FILE = "/tmp/migration-monitor.log"
@@ -24,11 +23,3 @@ INFLUXDB = {
         "run": "",
     }
 }
-
-try:
-    from local_settings import *
-except SyntaxError as e:
-    print(str(e))
-    exit()
-else:
-    pass

@@ -1,24 +1,24 @@
 import sys
 import time
-import settings
+
 from daemonize import Daemonize
-from logger import info, handler as fh
-from monitor import monitor_libvirt_events
-from util import start_event_loop
+
+import logger as log
+import monitor
+import settings
+import utils
 
 
 def main():
-    start_event_loop()
-    disposer = monitor_libvirt_events(settings.LIBVIRT,
-                                      settings.INFLUXDB)
-
-    info("Connecting to %s" % (", ".join(settings.LIBVIRT["URI"])))
+    utils.start_event_loop()
+    libvirt_monitor = monitor.LibvirtMonitor()
+    libvirt_monitor.start()
 
     old_exitfunc = getattr(sys, 'exitfunc', None)
 
     def exitfunc():
-        info("Shutting down.")
-        disposer()
+        log.info("Shutting down.")
+        libvirt_monitor.stop()
         if old_exitfunc:
             old_exitfunc()
 
@@ -35,5 +35,5 @@ if __name__ == "__main__":
         daemon = Daemonize(app="migration_monitor",
                            pid=settings.PID_FILE,
                            action=main,
-                           keep_fds=[fh.stream.fileno()])
+                           keep_fds=[log.handler.stream.fileno()])
         daemon.start()
