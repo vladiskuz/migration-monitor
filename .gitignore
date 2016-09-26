@@ -2,3 +2,5 @@
 *.sw*
 .venv
 migration_monitor.egg-info
+.idea
+.vagrant
