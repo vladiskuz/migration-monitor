@@ -1,13 +1,14 @@
-from Queue import Queue
 import time
+import threading
+from Queue import Queue
 
 import libvirt
 
-import actor
-import logger as log
-import settings
-import threading
-import utils
+import migrationmonitor.settings
+from migrationmonitor.libvirt.libvirt_utils import get_dom_name_by_id
+
+from migrationmonitor.common import actor
+from migrationmonitor.common import logger as log
 
 
 class LibvirtDomainsWatcher(threading.Thread):
@@ -15,7 +16,7 @@ class LibvirtDomainsWatcher(threading.Thread):
     If a new domain is found it will be added to a queue for further
     handling.
     """
-    
+
     def __init__(self, conn, migration_monitors, db_actor, interval=0.15):
         super(LibvirtDomainsWatcher, self).__init__()
         self.daemon = True
@@ -46,7 +47,7 @@ class LibvirtDomainsWatcher(threading.Thread):
                 log.info(
                     "Domain: (%s)%s has found on %s",
                     dom_id,
-                    utils.get_dom_name_by_id(self.conn, dom_id),
+                    get_dom_name_by_id(self.conn, dom_id),
                     self.conn.getURI())
 
             for dom_id in lost_dom_ids:
@@ -73,7 +74,7 @@ class DomainsJobMonitorActorCreator(actor.BaseActor):
 
     def _on_receive(self, msg):
         cmd, dom_id = msg
-        dom_name = utils.get_dom_name_by_id(self.conn, dom_id)
+        dom_name = get_dom_name_by_id(self.conn, dom_id)
 
         dom_actor = DomainJobMonitorActor(
             self.conn,
@@ -87,7 +88,7 @@ class DomainsJobMonitorActorCreator(actor.BaseActor):
         log.info(
             "Start job monitoring for domain (%s)%s on %s",
             dom_id,
-            utils.get_dom_name_by_id(self.conn, dom_id),
+            get_dom_name_by_id(self.conn, dom_id),
             self.conn.getURI())
 
 
@@ -99,26 +100,25 @@ class DomainJobMonitorActor(actor.BaseActor):
         super(DomainJobMonitorActor, self).__init__()
         self.conn = conn
         self.dom_id = dom_id
-        self.settings = settings
+        self.settings = migrationmonitor.settings
         self.migration_monitors = migration_monitors
         self.db_actor = db_actor
 
     def _on_receive(self, msg):
-        cmd, dom_id = msg
+        _, dom_id = msg
         try:
             dom = self.conn.lookupByID(self.dom_id)
             job_info = dom.jobStats()
             log.debug("jobStats: {0}".format(job_info))
-            self.db_actor.tell(({
-                "domain_id": self.dom_id,
-                "domain_name": dom.name()},
-                job_info,
-                self.settings.INFLUXDB["JOBINFO_MEASUREMENT"]))
+            self.db_actor.tell(({"domain_id": self.dom_id,
+                                 "domain_name": dom.name()},
+                                job_info,
+                                self.settings.INFLUXDB["JOBINFO_MEASUREMENT"]))
 
             time.sleep(self.settings.LIBVIRT["POLL_FREQ"])
             self.tell(("continue", dom_id))
 
-        except libvirt.libvirtError as ex:
+        except libvirt.libvirtError:
             self.stop()
             log.debug("Destroy DomJobMonitorActor for domain with id %s",
                       self.dom_id)

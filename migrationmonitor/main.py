@@ -3,22 +3,22 @@ import time
 
 from daemonize import Daemonize
 
-import logger as log
-import monitor
-import settings
-import utils
+from migrationmonitor.common import logger as log
+from migrationmonitor.libvirt.monitor import LibvirtMonitor
+from vcenter.monitor import VCenterMonitor
+import migrationmonitor.settings
 
 
 def main():
-    utils.start_event_loop()
-    libvirt_monitor = monitor.LibvirtMonitor()
-    libvirt_monitor.start()
+    monitor = VCenterMonitor()
+    monitor.start()
 
     old_exitfunc = getattr(sys, 'exitfunc', None)
 
+
     def exitfunc():
         log.info("Shutting down.")
-        libvirt_monitor.stop()
+        monitor.stop()
         if old_exitfunc:
             old_exitfunc()
 
@@ -27,8 +27,6 @@ def main():
     while True:
         time.sleep(1)
 
-
-if __name__ == "__main__":
     if getattr(settings, 'DEBUG', False):
         main()
     else:
@@ -37,3 +35,4 @@ if __name__ == "__main__":
                            action=main,
                            keep_fds=[log.handler.stream.fileno()])
         daemon.start()
+
