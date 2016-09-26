@@ -10,29 +10,26 @@ import threading
 import utils
 
 
-class DomsWatcher(threading.Thread):
+class LibvirtDomainsWatcher(threading.Thread):
     """Search for new and disappeared (deleted or migrated) domains.
     If a new domain is found it will be added to a queue for further
     handling.
     """
     
-    def __init__(self, conn, migration_monitors, db, interval=0.15):
-        super(DomsWatcher, self).__init__()
+    def __init__(self, conn, migration_monitors, db_actor, interval=0.15):
+        super(LibvirtDomainsWatcher, self).__init__()
         self.daemon = True
 
         self.conn = conn
         self.interval = interval
         self.migration_monitors = migration_monitors
-        self.db = db
+        self.db_actor = db_actor
 
-        self.new_dom_ids_q = Queue()
-
-        doms_job_monitor_thread = DomsJobMonitorActorCreator(
+        self.doms_job_monitor = DomainsJobMonitorActorCreator(
             conn,
-            self.new_dom_ids_q,
             self.migration_monitors,
-            self.db)
-        doms_job_monitor_thread.start()
+            self.db_actor)
+        self.doms_job_monitor.start()
 
     def run(self):
         known_dom_ids = set()
@@ -44,7 +41,7 @@ class DomsWatcher(threading.Thread):
             lost_dom_ids = known_dom_ids - set(current_dom_ids)
 
             for dom_id in new_dom_ids:
-                self.new_dom_ids_q.put(dom_id)
+                self.doms_job_monitor.tell(('start_dom_monitoring', dom_id))
                 known_dom_ids.add(dom_id)
                 log.info(
                     "Domain: (%s)%s has found on %s",
@@ -62,72 +59,64 @@ class DomsWatcher(threading.Thread):
             time.sleep(self.interval)
 
 
-class DomsJobMonitorActorCreator(threading.Thread):
+class DomainsJobMonitorActorCreator(actor.BaseActor):
     """Factory which gets new domain from a queue and creates a domain actor
-    that will track libvirt job stats about the particular domain.
+    that will tracks libvirt job stats about the particular domain.
     """
 
-    def __init__(self, conn, new_dom_ids_q,
-                 migration_monitors, db, interval=0.15):
-        super(DomsJobMonitorActorCreator, self).__init__()
+    def __init__(self, conn, migration_monitors, db_actor):
+        super(DomainsJobMonitorActorCreator, self).__init__()
         self.daemon = True
         self.conn = conn
-        self.new_dom_ids_q = new_dom_ids_q
         self.migration_monitors = migration_monitors
-        self.db = db
-        self.interval = interval
+        self.db_actor = db_actor
 
-    def run(self):
-        while True:
-            if not self.new_dom_ids_q.empty():
-                dom_id = self.new_dom_ids_q.get()
-                dom_name = utils.get_dom_name_by_id(self.conn, dom_id)
+    def _on_receive(self, msg):
+        cmd, dom_id = msg
+        dom_name = utils.get_dom_name_by_id(self.conn, dom_id)
 
-                dom_actor = DomJobMonitorActor(
-                    self.conn,
-                    dom_id,
-                    self.migration_monitors,
-                    self.db)
-                self.migration_monitors[dom_id] = dom_actor
-                dom_actor.start()
-                dom_actor.add_task_to_queue(('start_job_monitoring', dom_id))
+        dom_actor = DomainJobMonitorActor(
+            self.conn,
+            dom_id,
+            self.migration_monitors,
+            self.db_actor)
+        self.migration_monitors[dom_id] = dom_actor
+        dom_actor.start()
+        dom_actor.tell(('start_job_monitoring', dom_id))
 
-                log.info(
-                    "Start job monitoring for domain (%s)%s on %s",
-                    dom_id,
-                    utils.get_dom_name_by_id(self.conn, dom_id),
-                    self.conn.getURI())
-                self.new_dom_ids_q.task_done()
-
-            time.sleep(self.interval)
+        log.info(
+            "Start job monitoring for domain (%s)%s on %s",
+            dom_id,
+            utils.get_dom_name_by_id(self.conn, dom_id),
+            self.conn.getURI())
 
 
-class DomJobMonitorActor(actor.BaseActor):
+class DomainJobMonitorActor(actor.BaseActor):
     """Gets domain job stats and put it into database.
     """
 
-    def __init__(self, conn, dom_id, migration_monitors, db):
-        super(DomJobMonitorActor, self).__init__()
+    def __init__(self, conn, dom_id, migration_monitors, db_actor):
+        super(DomainJobMonitorActor, self).__init__()
         self.conn = conn
         self.dom_id = dom_id
         self.settings = settings
         self.migration_monitors = migration_monitors
-        self.db = db
+        self.db_actor = db_actor
 
-    def _run(self, msg):
+    def _on_receive(self, msg):
         cmd, dom_id = msg
         try:
             dom = self.conn.lookupByID(self.dom_id)
             job_info = dom.jobStats()
             log.debug("jobStats: {0}".format(job_info))
-            self.db.add_task_to_queue(({
+            self.db_actor.tell(({
                 "domain_id": self.dom_id,
                 "domain_name": dom.name()},
                 job_info,
                 self.settings.INFLUXDB["JOBINFO_MEASUREMENT"]))
 
             time.sleep(self.settings.LIBVIRT["POLL_FREQ"])
-            self.add_task_to_queue(("continue", dom_id))
+            self.tell(("continue", dom_id))
 
         except libvirt.libvirtError as ex:
             self.stop()

@@ -19,7 +19,7 @@ class InfluxDBActor(actor.BaseActor):
                                         self.influx_settings["PASSWORD"],
                                         self.influx_settings["DATABASE"])
 
-    def _run(self, msg):
+    def _on_receive(self, msg):
         if len(msg) == 3:
             try:
                 self._write(*msg)

@@ -11,7 +11,7 @@ class BaseActor(threading.Thread):
         self.daemon = True
         self.q = Queue()
 
-    def add_task_to_queue(self, item):
+    def tell(self, item):
         self.q.put(item)
 
     def run(self):
@@ -21,11 +21,11 @@ class BaseActor(threading.Thread):
                 break
 
             try:
-                self._run(item)
+                self._on_receive(item)
             finally:
                 self.q.task_done()
 
-    def _run(self, item):
+    def _on_receive(self, item):
         raise NotImplemented()
 
     def stop(self):

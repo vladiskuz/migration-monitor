@@ -43,8 +43,8 @@ class LibvirtMonitor(object):
         self.connections = []
         self.migration_monitors = {}
         self.settings = settings
-        self.db = db.InfluxDBActor()
-        self.db.start()
+        self.db_actor = db.InfluxDBActor()
+        self.db_actor.start()
 
     def start(self):
         for uri in self.settings.LIBVIRT['URI']:
@@ -57,10 +57,10 @@ class LibvirtMonitor(object):
 
         self._register_libvirt_callbacks(conn)
 
-        doms_watcher_thread = watcher.DomsWatcher(
+        doms_watcher_thread = watcher.LibvirtDomainsWatcher(
             conn,
             self.migration_monitors,
-            self.db)
+            self.db_actor)
         doms_watcher_thread.start()
 
     def _register_libvirt_callbacks(self, conn):
@@ -93,7 +93,7 @@ class LibvirtMonitor(object):
 
         boundary_event = stopped_migrated or started_migrated
 
-        self.db.add_task_to_queue(({
+        self.db_actor.tell(({
             "domain_id": dom_id,
             "domain_name": dom_name,
             "event": EVENT_STRINGS[event],
@@ -122,7 +122,7 @@ class LibvirtMonitor(object):
             log.debug("Destroy DomJobMonitorActor for domain with id %s",
                       dom_id)
 
-        self.db.stop()
+        self.db_actor.stop()
         for conn in self.connections:
             log.debug("Closing " + conn.getURI())
             conn.close()
