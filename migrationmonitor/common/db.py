@@ -20,7 +20,7 @@ class InfluxDBActor(BaseActor):
                                         self.influx_settings["DATABASE"])
 
     def _on_receive(self, msg):
-        if len(msg) == 3:
+        if len(msg) >= 3:
             try:
                 self._write(*msg)
             except:
@@ -28,12 +28,18 @@ class InfluxDBActor(BaseActor):
         else:
             log.error("Reported received %s instead of triple." % (msg,))
 
-    def _write(self, tags, fields, measurement):
+    def _write(self, tags, fields, measurement, dt=None):
         tags.update(self.influx_settings["TAGS"])
+
+        timestamp = time.time() \
+            if dt is None \
+            else time.mktime(dt.timetuple()) + dt.microsecond / 1E6
+
+
         json_body = [{
             "measurement": measurement,
             "tags": tags,
-            "time": int(time.time() * 1000000) * 1000,
+            "time": int(timestamp * 1000000) * 1000,
             "fields": fields
         }]
         self.db_client.write_points(json_body)

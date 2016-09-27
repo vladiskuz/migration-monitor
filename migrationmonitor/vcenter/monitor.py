@@ -75,7 +75,10 @@ class VCenterMonitor(BaseActor):
                         "vm_id": event.vm.vm}
 
                 values = {"value": 1}
-                self.db_actor.tell((tags, values, settings.INFLUXDB["EVENTS_MEASUREMENT"]))
+                self.db_actor.tell((tags,
+                                    values,
+                                    settings.INFLUXDB["EVENTS_MEASUREMENT"],
+                                    event.createdTime))
 
                 log.info("Reported %s event to influxdb.", event_id)
                 log.debug("%s %s %s",

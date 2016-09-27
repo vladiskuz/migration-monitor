@@ -15,7 +15,7 @@ VCENTER = {
     "USERNAME": 'vsphere.local\\administrator',
     "PASSWORD": 'Ytpfvfq!1',
 
-    "POLL_FREQ": 0.1,
+    "POLL_FREQ": 1,
     "EVENTS_BATCH_SIZE": 100,
     "EVENTS_BUFFER_LENGTH": 1000,
     "EVENTS_HISTORY_WINDOW_LOWER_BOUND": timedelta(minutes=7),
