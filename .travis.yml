@@ -16,6 +16,8 @@ python:
 install:
   - sudo apt-get install -y libvirt-bin libvirt-dev python-libvirt
   - python setup.py develop
+
+  - if [[ $TRAVIS_PYTHON_VERSION == 2* ]]; then pip install -r requirements-py2.txt; fi
   - pip install -r requirements-dev.txt
   - cp migrationmonitor/settings.py.template migrationmonitor/settings.py
 

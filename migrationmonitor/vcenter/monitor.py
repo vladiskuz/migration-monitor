@@ -6,8 +6,6 @@ from datetime import datetime
 from pyVim import connect
 from pyVmomi import vmodl, vim
 
-
-
 from migrationmonitor import settings
 from migrationmonitor.common.utils import retry
 from migrationmonitor.common import logger as log
@@ -18,6 +16,7 @@ from migrationmonitor.common.db import InfluxDBActor
 def _is_migration_event(event):
     return isinstance(event, vim.event.VmMigratedEvent) or \
         isinstance(event, vim.event.VmBeingHotMigratedEvent)
+
 
 def _create_vcenter_connection():
     ctx = ssl.create_default_context()
@@ -31,9 +30,10 @@ def _create_vcenter_connection():
                              pwd=settings.VCENTER["PASSWORD"],
                              sslContext=ctx)
 
+
 class VCenterMonitor(BaseActor):
-    """Live migration events monitoring actor for VMWare vCenter
-    """
+    """Live migration events monitoring actor for VMWare vCenter"""
+
     def __init__(self):
         super(VCenterMonitor, self).__init__()
 
@@ -52,8 +52,8 @@ class VCenterMonitor(BaseActor):
 
 
     def stop(self):
-        """Release and stop all actor resources
-        """
+        """Release and stop all actor resources"""
+
         self.db_actor.stop()
         connect.Disconnect(self.vc_connect)
         super(VCenterMonitor, self).stop()
