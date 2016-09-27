@@ -3,8 +3,8 @@ import time
 from collections import deque
 from datetime import datetime
 
+from pyVmomi import vim
 from pyVim import connect
-from pyVmomi import vmodl, vim
 
 from migrationmonitor import settings
 from migrationmonitor.common.utils import retry
@@ -38,9 +38,9 @@ class VCenterMonitor(BaseActor):
         super(VCenterMonitor, self).__init__()
 
         self.vc_connect = None
-        self.reported_event_ids = deque(maxlen=settings.VCENTER["EVENTS_BUFFER_LENGTH"])
+        self.reported_event_ids = \
+            deque(maxlen=settings.VCENTER["EVENTS_BUFFER_LENGTH"])
         self.db_actor = InfluxDBActor()
-
 
     def start(self):
         """Start the actor
@@ -50,14 +50,12 @@ class VCenterMonitor(BaseActor):
         super(VCenterMonitor, self).start()
         self.tell("start")
 
-
     def stop(self):
         """Release and stop all actor resources"""
 
         self.db_actor.stop()
         connect.Disconnect(self.vc_connect)
         super(VCenterMonitor, self).stop()
-
 
     def _not_reported_yet(self, event_id):
         not_in_cache = True
@@ -91,15 +89,12 @@ class VCenterMonitor(BaseActor):
             else:
                 log.debug("Event: %s already reported.", event_id)
 
-
         time.sleep(settings.VCENTER["POLL_FREQ"])
         self.tell("continue")
-
 
     def _reconnect(self, tries_remaining, ex, _delay):
         log.error("Caught %s", ex)
         self.vc_connect = _create_vcenter_connection()
-
 
     @retry(max_tries=10, hook=_reconnect)
     def _fetch_vcenter_events(self):
@@ -126,16 +121,16 @@ class VCenterMonitor(BaseActor):
         total = len(events)
 
         result = []
-
+        batch_size = settings.VCENTER["EVENTS_BATCH_SIZE"]
         while len(events) > 0:
             for _, event in enumerate(events):
                 if _is_migration_event(event):
                     result.append(event)
 
             ehc.ResetCollector()
-            events = ehc.ReadPreviousEvents(settings.VCENTER["EVENTS_BATCH_SIZE"])
+            events = ehc.ReadPreviousEvents(batch_size)
             total += len(events)
-            if total > settings.VCENTER["EVENTS_BATCH_SIZE"]:
+            if total > batch_size:
                 break
 
         return result

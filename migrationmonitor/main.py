@@ -3,18 +3,26 @@ import time
 
 from daemonize import Daemonize
 
+from migrationmonitor import settings
 from migrationmonitor.common import logger as log
 from migrationmonitor.libvirt.monitor import LibvirtMonitor
-from vcenter.monitor import VCenterMonitor
-import migrationmonitor.settings
+from migrationmonitor.vcenter.monitor import VCenterMonitor
+
+
+def create_monitor(provider):
+    if provider is "LIBVIRT":
+        return LibvirtMonitor()
+    elif provider is "VCENTER":
+        return VCenterMonitor()
+    else:
+        raise NotImplemented
 
 
 def main():
-    monitor = VCenterMonitor()
+    monitor = create_monitor(settings.PROVIDER)
     monitor.start()
 
     old_exitfunc = getattr(sys, 'exitfunc', None)
-
 
     def exitfunc():
         log.info("Shutting down.")
@@ -35,4 +43,3 @@ def main():
                            action=main,
                            keep_fds=[log.handler.stream.fileno()])
         daemon.start()
-

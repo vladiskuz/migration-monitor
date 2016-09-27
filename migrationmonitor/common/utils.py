@@ -1,12 +1,17 @@
 from time import sleep
 
+
 try:
     xrange
 except NameError:
     xrange = range
 
-def retry(max_tries, delay=1, delay_mult=2, exceptions=(Exception,), hook=None):
-    """Naive implementation of retry function docorator with exception hook.
+
+def retry(max_tries, delay=1, delay_mult=2,
+          exceptions=(Exception,), hook=None):
+    """
+    Naive implementation of retry function
+    docorator with exception hook.
     """
     def _dec(func):
         def _fn(self, *args, **kwargs):

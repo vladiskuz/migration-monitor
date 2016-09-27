@@ -1,12 +1,10 @@
-import threading
-
 import libvirt
 
 import migrationmonitor.settings
 import migrationmonitor.libvirt.watcher
 import migrationmonitor.common.logger as log
 from migrationmonitor.common.actor import defer
-from migrationmonitor.libvirt import libvirt_utils
+from migrationmonitor.libvirt import utils
 from migrationmonitor.common.db import InfluxDBActor
 from migrationmonitor.libvirt.watcher import LibvirtDomainsWatcher
 
@@ -14,9 +12,11 @@ EVENT_DETAILS = (
     ("Added", "Updated"),
     ("Removed",),
     ("Booted", "Migrated", "Restored", "Snapshot", "Wakeup"),
-    ("Paused", "Migrated", "IOError", "Watchdog", "Restored", "Snapshot", "API error"),
+    ("Paused", "Migrated", "IOError", "Watchdog", "Restored",
+     "Snapshot", "API error"),
     ("Unpaused", "Migrated", "Snapshot"),
-    ("Shutdown", "Destroyed", "Crashed", "Migrated", "Saved", "Failed", "Snapshot"),
+    ("Shutdown", "Destroyed", "Crashed", "Migrated", "Saved",
+     "Failed", "Snapshot"),
     ("Finished",),
     ("Memory", "Disk"),
     ("Panicked",),
@@ -50,7 +50,7 @@ class LibvirtMonitor(object):
     def start(self):
         """Start the actor
         """
-        libvirt_utils.start_event_loop()
+        utils.start_event_loop()
         for uri in self.settings.LIBVIRT['URI']:
             self._start(uri)
 
@@ -76,7 +76,6 @@ class LibvirtMonitor(object):
             None)
         conn.setKeepAlive(5, 3)
 
-
     def _domain_event_handler(self, conn, dom, event, detail, opaque):
         dom_id = dom.ID()
         dom_name = dom.name()
@@ -86,14 +85,24 @@ class LibvirtMonitor(object):
                  EVENT_STRINGS[event],
                  EVENT_DETAILS[event][detail])
 
-        # Migration start events
-        started_migrated = (event == 2 and detail == 1)  # Started Migrated (on dst)
-        # suspended_paused = (event == 3 and detail == 0)  # Suspended Paused (on src)
+        # == Migration start events
 
-        # Migration end events
-        # resumed_migrated = (event == 4 and detail == 1)  # Resumed Migrated (on dst)
-        stopped_migrated = (event == 5 and detail == 3)  # Stopped Migrated (on src)
-        # stopped_failed = (event == 5 and detail == 5)  # Stopped Failed (on dst)
+        # Started Migrated (on dst)
+        started_migrated = (event == 2 and detail == 1)
+
+        # Suspended Paused (on src)
+        # suspended_paused = (event == 3 and detail == 0)
+
+        # == Migration end events
+
+        # Resumed Migrated (on dst)
+        # resumed_migrated = (event == 4 and detail == 1)
+
+        # Stopped Migrated (on src)
+        stopped_migrated = (event == 5 and detail == 3)
+
+        # Stopped Failed (on dst)
+        # stopped_failed = (event == 5 and detail == 5)
 
         boundary_event = stopped_migrated or started_migrated
         tags = {
@@ -103,7 +112,8 @@ class LibvirtMonitor(object):
             "event_detail": EVENT_DETAILS[event][detail]}
         values = {"value": 1 if boundary_event else 0}
 
-        self.db_actor.tell((tags, values, self.settings.INFLUXDB["EVENTS_MEASUREMENT"]))
+        self.db_actor.tell((tags, values,
+                            self.settings.INFLUXDB["EVENTS_MEASUREMENT"]))
 
     def _conn_close_handler(self, conn, reason, opaque):
         def _reconnect():

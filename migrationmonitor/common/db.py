@@ -28,13 +28,12 @@ class InfluxDBActor(BaseActor):
         else:
             log.error("Reported received %s instead of triple." % (msg,))
 
-    def _write(self, tags, fields, measurement, dt=None):
+    def _write(self, tags, fields, measurement, datetime=None):
         tags.update(self.influx_settings["TAGS"])
 
         timestamp = time.time() \
-            if dt is None \
-            else time.mktime(dt.timetuple()) + dt.microsecond / 1E6
-
+            if datetime is None \
+            else time.mktime(datetime.timetuple()) + datetime.microsecond / 1E6
 
         json_body = [{
             "measurement": measurement,

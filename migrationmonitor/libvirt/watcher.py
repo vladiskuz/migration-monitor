@@ -1,11 +1,10 @@
 import time
 import threading
-from Queue import Queue
 
 import libvirt
 
 import migrationmonitor.settings
-from migrationmonitor.libvirt.libvirt_utils import get_dom_name_by_id
+from migrationmonitor.libvirt.utils import get_dom_name_by_id
 
 from migrationmonitor.common import actor
 from migrationmonitor.common import logger as log

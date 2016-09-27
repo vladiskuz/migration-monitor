@@ -3,21 +3,23 @@ import libvirt
 
 
 def run_native_event_loop():
-    """Runs native libvirt event loop
-    """
+    """Runs native libvirt event loop"""
+
     while True:
         libvirt.virEventRunDefaultImpl()
 
-EVENT_LOOP_THREAD = None
+event_loop_thread = None
+
+
 def start_event_loop():
-    """Defines eventLoopThread global and starts the thread
-    """
-    global EVENT_LOOP_THREAD
+    """Defines eventLoopThread global and starts the thread"""
+
+    global event_loop_thread
     libvirt.virEventRegisterDefaultImpl()
-    EVENT_LOOP_THREAD = threading.Thread(target=run_native_event_loop,
+    event_loop_thread = threading.Thread(target=run_native_event_loop,
                                          name="libvirtEventLoop")
-    EVENT_LOOP_THREAD.setDaemon(True)
-    EVENT_LOOP_THREAD.start()
+    event_loop_thread.setDaemon(True)
+    event_loop_thread.start()
 
 
 def get_dom_name_by_id(conn, dom_id):

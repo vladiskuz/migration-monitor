@@ -12,12 +12,10 @@ class BaseActor(threading.Thread):
         self.daemon = True
         self.message_box = Queue()
 
-
     def tell(self, item):
         """Send a message to the actor.
         """
         self.message_box.put(item)
-
 
     def run(self):
         while True:
@@ -31,8 +29,7 @@ class BaseActor(threading.Thread):
                 self.message_box.task_done()
 
     def _on_receive(self, item):
-        raise NotImplementedError()
-
+        raise NotImplemented
 
     def stop(self):
         """Stops the actor.

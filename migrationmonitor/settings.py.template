@@ -5,6 +5,8 @@ DEBUG = True
 PID_FILE = "/tmp/migration-monitor.pid"
 LOG_FILE = "/tmp/migration-monitor.log"
 
+PROVIDER = "VCENTER"  # or "LIBVIRT"
+
 LIBVIRT = {
     "URI": ["qemu:///system"],
     "POLL_FREQ": 0.1,
