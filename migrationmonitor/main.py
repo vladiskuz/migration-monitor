@@ -15,7 +15,7 @@ def create_monitor(provider):
     elif provider is "VCENTER":
         return VCenterMonitor()
     else:
-        raise NotImplemented
+        raise NotImplementedError
 
 
 def main():

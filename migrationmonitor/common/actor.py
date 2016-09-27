@@ -29,7 +29,7 @@ class BaseActor(threading.Thread):
                 self.message_box.task_done()
 
     def _on_receive(self, item):
-        raise NotImplemented
+        raise NotImplementedError
 
     def stop(self):
         """Stops the actor.
