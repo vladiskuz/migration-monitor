@@ -1,8 +1,9 @@
 *.pyc
 *.sw*
-.venv
+.venv*
 migration_monitor.egg-info
 .idea
 .vagrant
 .cache
 settings.py
+*.sublime-*

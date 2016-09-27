@@ -17,6 +17,7 @@ install:
   - sudo apt-get install -y libvirt-bin libvirt-dev python-libvirt
   - python setup.py develop
   - pip install -r requirements-dev.txt
+  - cp migrationmonitor/settings.py.template migrationmonitor/settings.py
 
 script:
   - pytest
