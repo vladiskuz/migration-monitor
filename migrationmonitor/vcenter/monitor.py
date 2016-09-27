@@ -6,10 +6,13 @@ from datetime import datetime
 from pyVim import connect
 from pyVmomi import vmodl, vim
 
+
+
 from migrationmonitor import settings
+from migrationmonitor.common.utils import retry
+from migrationmonitor.common import logger as log
 from migrationmonitor.common.actor import BaseActor
 from migrationmonitor.common.db import InfluxDBActor
-from migrationmonitor.common import logger as log
 
 
 def _is_migration_event(event):
@@ -92,6 +95,13 @@ class VCenterMonitor(BaseActor):
         time.sleep(settings.VCENTER["POLL_FREQ"])
         self.tell("continue")
 
+
+    def _reconnect(self, tries_remaining, ex, _delay):
+        log.error("Caught %s", ex)
+        self.vc_connect = _create_vcenter_connection()
+
+
+    @retry(max_tries=10, hook=_reconnect)
     def _fetch_vcenter_events(self):
         emgr = self.vc_connect.content.eventManager
         efspec = vim.event.EventFilterSpec()
@@ -102,8 +112,12 @@ class VCenterMonitor(BaseActor):
         efspec.entity = efespec
 
         eftspec = vim.event.EventFilterSpec.ByTime()
-        eftspec.beginTime = datetime.now() - settings.VCENTER["EVENTS_HISTORY_WINDOW_LOWER_BOUND"]
-        eftspec.endTime = datetime.now() + settings.VCENTER["EVENTS_HISTORY_WINDOW_UPPER_BOUND"]
+
+        lower_bound = settings.VCENTER["EVENTS_HISTORY_WINDOW_LOWER_BOUND"]
+        upper_bound = settings.VCENTER["EVENTS_HISTORY_WINDOW_UPPER_BOUND"]
+
+        eftspec.beginTime = datetime.now() - lower_bound
+        eftspec.endTime = datetime.now() + upper_bound
         efspec.time = eftspec
 
         ehc = emgr.CreateCollectorForEvents(efspec)

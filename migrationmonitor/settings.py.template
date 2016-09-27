@@ -11,11 +11,11 @@ LIBVIRT = {
 }
 
 VCENTER = {
-    "HOST": 'vcenter-ent2.ad.mirantis.net',
-    "USERNAME": 'vsphere.local\\administrator',
-    "PASSWORD": 'Ytpfvfq!1',
+    "HOST": '',
+    "USERNAME": '',
+    "PASSWORD": '',
 
-    "POLL_FREQ": 1,
+    "POLL_FREQ": 5, # sec
     "EVENTS_BATCH_SIZE": 100,
     "EVENTS_BUFFER_LENGTH": 1000,
     "EVENTS_HISTORY_WINDOW_LOWER_BOUND": timedelta(minutes=7),
@@ -23,11 +23,11 @@ VCENTER = {
 }
 
 INFLUXDB = {
-    "HOST": 'monit-ent.vm.mirantis.net',
-    "PORT": '8086',
+    "HOST": '',
+    "PORT": '',
     "USERNAME": '',
     "PASSWORD": '',
-    "DATABASE": 'vcenter_dev',
+    "DATABASE": '',
     "EVENTS_MEASUREMENT": 'events',
     "JOBINFO_MEASUREMENT": 'jobinfo',
     "RECONNECT": 10,  # sec

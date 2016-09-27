@@ -4,3 +4,5 @@
 migration_monitor.egg-info
 .idea
 .vagrant
+.cache
+settings.py
