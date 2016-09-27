@@ -73,7 +73,6 @@ class DomainsJobMonitorActorCreator(actor.BaseActor):
 
     def _on_receive(self, msg):
         cmd, dom_id = msg
-        dom_name = get_dom_name_by_id(self.conn, dom_id)
 
         dom_actor = DomainJobMonitorActor(
             self.conn,

@@ -1,5 +1,4 @@
 import sys
-import time
 import random
 
 try:
@@ -13,6 +12,7 @@ from collections import deque
 MAXNUM = sys.maxsize
 MAXLEN = 1000
 RNG = random.SystemRandom()
+
 
 def impl_via_deque(deq):
     def _fn():

@@ -22,4 +22,5 @@ install:
   - cp migrationmonitor/settings.py.template migrationmonitor/settings.py
 
 script:
+  - flake8 tests migrationmonitor
   - pytest

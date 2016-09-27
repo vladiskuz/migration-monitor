@@ -17,7 +17,7 @@ VCENTER = {
     "USERNAME": '',
     "PASSWORD": '',
 
-    "POLL_FREQ": 5, # sec
+    "POLL_FREQ": 5,  # sec
     "EVENTS_BATCH_SIZE": 100,
     "EVENTS_BUFFER_LENGTH": 1000,
     "EVENTS_HISTORY_WINDOW_LOWER_BOUND": timedelta(minutes=7),
