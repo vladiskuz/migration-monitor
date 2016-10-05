@@ -12,6 +12,7 @@
 - name: Install git
   apt: name=git
 
+# todo: do not install from github if local copy exists
 - name: Git clone migration-monitor from github
   git: repo={{ source_repo }} version={{ source_branch }} dest={{ work_dir }}
 
