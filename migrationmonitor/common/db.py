@@ -1,23 +1,24 @@
 import time
 import traceback
 
-from influxdb import InfluxDBClient
+import influxdb
 
 from migrationmonitor import settings
 from migrationmonitor.common import logger as log
-from migrationmonitor.common.actor import BaseActor
+from migrationmonitor.common import actor
 
 
-class InfluxDBActor(BaseActor):
+class InfluxDBActor(actor.BaseActor):
 
     def __init__(self):
         super(InfluxDBActor, self).__init__()
         self.influx_settings = settings.INFLUXDB
-        self.db_client = InfluxDBClient(self.influx_settings["HOST"],
-                                        self.influx_settings["PORT"],
-                                        self.influx_settings["USERNAME"],
-                                        self.influx_settings["PASSWORD"],
-                                        self.influx_settings["DATABASE"])
+        self.db_client = influxdb.InfluxDBClient(
+            self.influx_settings["HOST"],
+            self.influx_settings["PORT"],
+            self.influx_settings["USERNAME"],
+            self.influx_settings["PASSWORD"],
+            self.influx_settings["DATABASE"])
 
     def _on_receive(self, msg):
         if len(msg) >= 3:

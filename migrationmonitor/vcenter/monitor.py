@@ -4,13 +4,13 @@ from collections import deque
 from datetime import datetime
 
 from pyVmomi import vim
-from pyVim import connect
+from pyVim import connect as vcenter_connect
 
-from migrationmonitor import settings
+import migrationmonitor.settings
 from migrationmonitor.common.utils import retry
 from migrationmonitor.common import logger as log
-from migrationmonitor.common.actor import BaseActor
-from migrationmonitor.common.db import InfluxDBActor
+from migrationmonitor.common import actor
+from migrationmonitor.common import db
 
 
 def _is_migration_event(event):
@@ -19,28 +19,34 @@ def _is_migration_event(event):
 
 
 def _create_vcenter_connection():
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
+    context = ssl.create_default_context()
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
 
-    log.debug("Connecting to vCenter %s", settings.VCENTER["HOST"])
-    return \
-        connect.SmartConnect(host=settings.VCENTER["HOST"],
-                             user=settings.VCENTER["USERNAME"],
-                             pwd=settings.VCENTER["PASSWORD"],
-                             sslContext=ctx)
+    log.debug(
+        "Connecting to vCenter %s",
+        migrationmonitor.settings.VCENTER["HOST"])
+
+    connection = vcenter_connect.SmartConnect(
+        host=migrationmonitor.settings.VCENTER["HOST"],
+        user=migrationmonitor.settings.VCENTER["USERNAME"],
+        pwd=migrationmonitor.settings.VCENTER["PASSWORD"],
+        sslContext=context)
+
+    return connection
 
 
-class VCenterMonitor(BaseActor):
+class VCenterMonitor(actor.BaseActor):
     """Live migration events monitoring actor for VMWare vCenter"""
 
     def __init__(self):
         super(VCenterMonitor, self).__init__()
 
+        self.settings = migrationmonitor.settings
         self.vc_connect = None
-        self.reported_event_ids = \
-            deque(maxlen=settings.VCENTER["EVENTS_BUFFER_LENGTH"])
-        self.db_actor = InfluxDBActor()
+        self.reported_event_ids = deque(
+            maxlen=self.settings.VCENTER["EVENTS_BUFFER_LENGTH"])
+        self.db_actor = db.InfluxDBActor()
 
     def start(self):
         """Start the actor
@@ -54,15 +60,8 @@ class VCenterMonitor(BaseActor):
         """Release and stop all actor resources"""
 
         self.db_actor.stop()
-        connect.Disconnect(self.vc_connect)
+        vcenter_connect.Disconnect(self.vc_connect)
         super(VCenterMonitor, self).stop()
-
-    def _not_reported_yet(self, event_id):
-        not_in_cache = True
-        for reported_event_id in self.reported_event_ids:
-            if event_id == reported_event_id:
-                not_in_cache = False
-        return not_in_cache
 
     def _on_receive(self, item):
         events = self._fetch_vcenter_events()
@@ -70,16 +69,17 @@ class VCenterMonitor(BaseActor):
 
         for event in events:
             event_id = event.key
-            if self._not_reported_yet(event_id):
+            if event_id not in self.reported_event_ids:
                 self.reported_event_ids.append(event_id)
                 tags = {"vm_name": event.vm.name,
                         "vm_id": event.vm.vm}
 
                 values = {"value": 1}
-                self.db_actor.tell((tags,
-                                    values,
-                                    settings.INFLUXDB["EVENTS_MEASUREMENT"],
-                                    event.createdTime))
+                self.db_actor.tell((
+                    tags,
+                    values,
+                    self.settings.INFLUXDB["EVENTS_MEASUREMENT"],
+                    event.createdTime))
 
                 log.info("Reported %s event to influxdb.", event_id)
                 log.debug("%s %s %s",
@@ -89,7 +89,7 @@ class VCenterMonitor(BaseActor):
             else:
                 log.debug("Event: %s already reported.", event_id)
 
-        time.sleep(settings.VCENTER["POLL_FREQ"])
+        time.sleep(self.settings.VCENTER["POLL_FREQ"])
         self.tell("continue")
 
     def _reconnect(self, tries_remaining, ex, _delay):
@@ -98,37 +98,43 @@ class VCenterMonitor(BaseActor):
 
     @retry(max_tries=10, hook=_reconnect)
     def _fetch_vcenter_events(self):
-        emgr = self.vc_connect.content.eventManager
-        efspec = vim.event.EventFilterSpec()
+        event_filter_spec = vim.event.EventFilterSpec()
 
-        efespec = vim.event.EventFilterSpec.ByEntity()
-        efespec.entity = self.vc_connect.content.rootFolder
-        efespec.recursion = vim.event.EventFilterSpec.RecursionOption.all
-        efspec.entity = efespec
+        event_filter_spec_e = vim.event.EventFilterSpec.ByEntity()
+        event_filter_spec_e.entity = self.vc_connect.content.rootFolder
+        event_filter_spec_e.recursion = \
+            vim.event.EventFilterSpec.RecursionOption.all
+        event_filter_spec.entity = event_filter_spec_e
 
-        eftspec = vim.event.EventFilterSpec.ByTime()
+        event_filter_spec_t = vim.event.EventFilterSpec.ByTime()
 
-        lower_bound = settings.VCENTER["EVENTS_HISTORY_WINDOW_LOWER_BOUND"]
-        upper_bound = settings.VCENTER["EVENTS_HISTORY_WINDOW_UPPER_BOUND"]
+        lower_bound = \
+            self.settings.VCENTER["EVENTS_HISTORY_WINDOW_LOWER_BOUND"]
+        upper_bound = \
+            self.settings.VCENTER["EVENTS_HISTORY_WINDOW_UPPER_BOUND"]
 
-        eftspec.beginTime = datetime.now() - lower_bound
-        eftspec.endTime = datetime.now() + upper_bound
-        efspec.time = eftspec
+        time_now = datetime.now()
+        event_filter_spec_t.beginTime = time_now - lower_bound
+        event_filter_spec_t.endTime = time_now + upper_bound
+        event_filter_spec.time = event_filter_spec_t
 
-        ehc = emgr.CreateCollectorForEvents(efspec)
-        ehc.SetCollectorPageSize(settings.VCENTER["EVENTS_BATCH_SIZE"])
-        events = ehc.latestPage
+        event_manager = self.vc_connect.content.eventManager
+        event_collector = event_manager.CreateCollectorForEvents(
+            event_filter_spec)
+        event_collector.SetCollectorPageSize(
+            self.settings.VCENTER["EVENTS_BATCH_SIZE"])
+        events = event_collector.latestPage
         total = len(events)
 
         result = []
-        batch_size = settings.VCENTER["EVENTS_BATCH_SIZE"]
+        batch_size = self.settings.VCENTER["EVENTS_BATCH_SIZE"]
         while len(events) > 0:
             for _, event in enumerate(events):
                 if _is_migration_event(event):
                     result.append(event)
 
-            ehc.ResetCollector()
-            events = ehc.ReadPreviousEvents(batch_size)
+            event_collector.ResetCollector()
+            events = event_collector.ReadPreviousEvents(batch_size)
             total += len(events)
             if total > batch_size:
                 break

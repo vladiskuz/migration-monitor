@@ -1,4 +1,4 @@
 pytest
-mock
+pytest-mock
 pytest-benchmark
 flake8
