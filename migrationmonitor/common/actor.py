@@ -1,4 +1,4 @@
-from Queue import Queue
+from six.moves import queue
 import threading
 
 POISON_PILL = object()
@@ -10,7 +10,7 @@ class BaseActor(threading.Thread):
     def __init__(self):
         super(BaseActor, self).__init__()
         self.daemon = True
-        self.message_box = Queue()
+        self.message_box = queue.Queue()
 
     def tell(self, item):
         """Send a message to the actor.

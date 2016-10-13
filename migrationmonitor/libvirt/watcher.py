@@ -4,7 +4,7 @@ import threading
 import libvirt
 
 import migrationmonitor.settings
-from migrationmonitor.libvirt.utils import get_dom_name_by_id
+from migrationmonitor.libvirt import utils
 
 from migrationmonitor.common import actor
 from migrationmonitor.common import logger as log
@@ -46,7 +46,7 @@ class LibvirtDomainsWatcher(threading.Thread):
                 log.info(
                     "Domain: (%s)%s has found on %s",
                     dom_id,
-                    get_dom_name_by_id(self.conn, dom_id),
+                    utils.get_dom_name_by_id(self.conn, dom_id),
                     self.conn.getURI())
 
             for dom_id in lost_dom_ids:
@@ -86,7 +86,7 @@ class DomainsJobMonitorActorCreator(actor.BaseActor):
         log.info(
             "Start job monitoring for domain (%s)%s on %s",
             dom_id,
-            get_dom_name_by_id(self.conn, dom_id),
+            utils.get_dom_name_by_id(self.conn, dom_id),
             self.conn.getURI())
 
 

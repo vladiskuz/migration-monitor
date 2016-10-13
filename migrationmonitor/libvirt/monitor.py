@@ -1,12 +1,13 @@
 import libvirt
+import six
 
-import migrationmonitor.settings
-import migrationmonitor.libvirt.watcher
 import migrationmonitor.common.logger as log
-from migrationmonitor.common.actor import defer
+import migrationmonitor.libvirt.watcher
+import migrationmonitor.settings
+from migrationmonitor.common import actor
+from migrationmonitor.common import db
 from migrationmonitor.libvirt import utils
-from migrationmonitor.common.db import InfluxDBActor
-from migrationmonitor.libvirt.watcher import LibvirtDomainsWatcher
+from migrationmonitor.libvirt import watcher
 
 EVENT_DETAILS = (
     ("Added", "Updated"),
@@ -44,7 +45,7 @@ class LibvirtMonitor(object):
         self.connections = []
         self.migration_monitors = {}
         self.settings = migrationmonitor.settings
-        self.db_actor = InfluxDBActor()
+        self.db_actor = db.InfluxDBActor()
         self.db_actor.start()
 
     def start(self):
@@ -61,7 +62,7 @@ class LibvirtMonitor(object):
 
         self._register_libvirt_callbacks(conn)
 
-        doms_watcher_thread = LibvirtDomainsWatcher(
+        doms_watcher_thread = watcher.LibvirtDomainsWatcher(
             conn,
             self.migration_monitors,
             self.db_actor)
@@ -116,25 +117,25 @@ class LibvirtMonitor(object):
                             self.settings.INFLUXDB["EVENTS_MEASUREMENT"]))
 
     def _conn_close_handler(self, conn, reason, opaque):
-        def _reconnect():
-            uri = conn.getURI()
-            log.debug("Reconnection %s" % (uri,))
-            self.connections.remove(conn)
-            self._start(uri)
-
         log.error("Closed connection: %s: %s",
                   conn.getURI(),
                   REASON_STRINGS[reason])
 
         if reason == 0:
-            defer(_reconnect,
-                  seconds=self.settings.INFLUXDB["RECONNECT"])
+            actor.defer(
+                self._reconnect,
+                seconds=self.settings.INFLUXDB["RECONNECT"])
+
+    def _reconnect(self, conn):
+        uri = conn.getURI()
+        log.debug("Reconnection %s" % (uri,))
+        self.connections.remove(conn)
+        self._start(uri)
 
     def stop(self):
         """Stop the actor and release acquired resources
         """
-        for dom_id in self.migration_monitors:
-            dom_actor = self.migration_monitors[dom_id]
+        for dom_id, dom_actor in six.iteritems(self.migration_monitors):
             dom_actor.stop()
             log.debug("Destroy DomJobMonitorActor for domain with id %s",
                       dom_id)
