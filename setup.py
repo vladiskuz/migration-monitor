@@ -8,7 +8,8 @@ setup(
                       'colorlog>=2.7.0',
                       'influxdb>=2.12.0',
                       # 'libvirt-python>=1.3.2',
-                      'daemonize>=2.4.4'],
+                      'daemonize>=2.4.4',
+                      'pyzmq>=16.0.0',],
 
     entry_points={
         'console_scripts': [

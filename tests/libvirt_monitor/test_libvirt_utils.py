@@ -1,4 +1,4 @@
-from migrationmonitor.libvirt import utils
+from migrationmonitor.libvirt_monitor import utils
 
 
 def test_start_event_loop(mocker):
@@ -20,7 +20,7 @@ def test_start_event_loop(mocker):
         target=run_native_event_loop,
         name="libvirtEventLoop")
     event_loop_thread.setDaemon.assert_called_once_with(True)
-    event_loop_thread.start.assert_called_once()
+    event_loop_thread.start.assert_called_once_with()
 
 
 def test_get_dom_name_by_id(mocker):

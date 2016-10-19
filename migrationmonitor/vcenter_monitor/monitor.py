@@ -7,10 +7,10 @@ from pyVmomi import vim
 from pyVim import connect as vcenter_connect
 
 import migrationmonitor.settings
-from migrationmonitor.common.utils import retry
-from migrationmonitor.common import logger as log
 from migrationmonitor.common import actor
-from migrationmonitor.common import db
+from migrationmonitor.common import logger as log
+from migrationmonitor.common import reporter
+from migrationmonitor.common.utils import retry
 
 
 def _is_migration_event(event):
@@ -46,12 +46,12 @@ class VCenterMonitor(actor.BaseActor):
         self.vc_connect = None
         self.reported_event_ids = deque(
             maxlen=self.settings.VCENTER["EVENTS_BUFFER_LENGTH"])
-        self.db_actor = db.InfluxDBActor()
+        self.reporter = reporter.Reporter()
 
     def start(self):
         """Start the actor
         """
-        self.db_actor.start()
+        self.reporter.start()
         self.vc_connect = _create_vcenter_connection()
         super(VCenterMonitor, self).start()
         self.tell("start")
@@ -59,7 +59,7 @@ class VCenterMonitor(actor.BaseActor):
     def stop(self):
         """Release and stop all actor resources"""
 
-        self.db_actor.stop()
+        self.reporter.stop()
         vcenter_connect.Disconnect(self.vc_connect)
         super(VCenterMonitor, self).stop()
 
@@ -75,13 +75,13 @@ class VCenterMonitor(actor.BaseActor):
                         "vm_id": event.vm.vm}
 
                 values = {"value": 1}
-                self.db_actor.tell((
-                    tags,
-                    values,
-                    self.settings.INFLUXDB["EVENTS_MEASUREMENT"],
-                    event.createdTime))
+                self.reporter.tell({
+                    "tags": tags,
+                    "values": values,
+                    "measurement":
+                        self.settings.MEASUREMENT["EVENTS_MEASUREMENT"],
+                    "datetime": event.createdTime})
 
-                log.info("Reported %s event to influxdb.", event_id)
                 log.debug("%s %s %s",
                           event.createdTime,
                           type(event).__name__,

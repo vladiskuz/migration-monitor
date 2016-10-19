@@ -4,7 +4,7 @@ import time
 
 from migrationmonitor.common import actor
 from migrationmonitor.common import logger
-from migrationmonitor.vcenter import monitor
+from migrationmonitor.vcenter_monitor import monitor
 
 
 def test_is_migration_event_on_success(mocker):
@@ -67,12 +67,12 @@ def test_create_vcenter_connection_on_success(mocker):
 
 class TestVCenterMonitor(object):
     def test_start_on_success(self, mocker):
-        db_actor = mocker.stub()
-        db_actor.start = mocker.stub()
+        fake_reporter = mocker.stub()
+        fake_reporter.start = mocker.stub()
 
-        InfluxDBActor = mocker.patch(
-            'migrationmonitor.common.db.InfluxDBActor')
-        InfluxDBActor.return_value = db_actor
+        Reporter = mocker.patch(
+            'migrationmonitor.common.reporter.Reporter')
+        Reporter.return_value = fake_reporter
 
         _create_vcenter_connection = mocker.patch.object(
             monitor, '_create_vcenter_connection')
@@ -83,18 +83,18 @@ class TestVCenterMonitor(object):
         vcenter_monitor.tell = mocker.stub()
         vcenter_monitor.start()
 
-        db_actor.start.assert_called_once_with()
+        fake_reporter.start.assert_called_once_with()
         _create_vcenter_connection.assert_called_once_with()
         start.assert_called_once_with()
         vcenter_monitor.tell.assert_called_once_with("start")
 
     def test_stop_on_success(self, mocker):
-        db_actor = mocker.stub()
-        db_actor.stop = mocker.stub()
+        fake_reporter = mocker.stub()
+        fake_reporter.stop = mocker.stub()
 
-        InfluxDBActor = mocker.patch(
-            'migrationmonitor.common.db.InfluxDBActor')
-        InfluxDBActor.return_value = db_actor
+        Reporter = mocker.patch(
+            'migrationmonitor.common.reporter.Reporter')
+        Reporter.return_value = fake_reporter
 
         Disconnect = mocker.patch('pyVim.connect.Disconnect')
 
@@ -103,20 +103,20 @@ class TestVCenterMonitor(object):
         vcenter_monitor = monitor.VCenterMonitor()
         vcenter_monitor.stop()
 
-        db_actor.stop.assert_called_once_with()
+        fake_reporter.stop.assert_called_once_with()
         Disconnect.assert_called_once_with(vcenter_monitor.vc_connect)
         stop.assert_called_once_with()
 
     def test_on_receive_on_success(self, mocker):
-        db_actor = mocker.stub()
-        db_actor.tell = mocker.stub()
+        fake_reporter = mocker.stub()
+        fake_reporter.tell = mocker.stub()
 
-        InfluxDBActor = mocker.patch(
-            'migrationmonitor.common.db.InfluxDBActor')
-        InfluxDBActor.return_value = db_actor
+        Reporter = mocker.patch(
+            'migrationmonitor.common.reporter.Reporter')
+        Reporter.return_value = fake_reporter
 
         fake_settings = mocker.patch('migrationmonitor.settings')
-        fake_settings.INFLUXDB = {"EVENTS_MEASUREMENT": "fake_measurement"}
+        fake_settings.MEASUREMENT = {"EVENTS_MEASUREMENT": "fake_measurement"}
         fake_settings.VCENTER = {
             "POLL_FREQ": "fake_poll", "EVENTS_BUFFER_LENGTH": 1000}
 
@@ -133,7 +133,6 @@ class TestVCenterMonitor(object):
         _fetch_vcenter_events.return_value = events
 
         log_debug = mocker.patch.object(logger, 'debug')
-        log_info = mocker.patch.object(logger, 'info')
         time_sleep = mocker.patch.object(time, 'sleep')
         tell = mocker.patch.object(actor.BaseActor, 'tell')
 
@@ -145,10 +144,6 @@ class TestVCenterMonitor(object):
                 "%s %s %s", event2.createdTime, type(event2).__name__, event2),
             mocker.call('Event: %s already reported.', event3.key)]
 
-        expected_args_log_info = [
-            mocker.call("Reported %s event to influxdb.", event1.key),
-            mocker.call("Reported %s event to influxdb.", event2.key)]
-
         expected_args_tell = [
                 mocker.call(args1_event1), mocker.call(args2_event2)]
 
@@ -158,10 +153,9 @@ class TestVCenterMonitor(object):
 
         _fetch_vcenter_events.assert_called_once_with()
         assert log_debug.call_args_list == expected_args_log_debug
-        assert log_info.call_args_list == expected_args_log_info
         for event in events:
             assert event.key in vcenter_monitor.reported_event_ids
-        assert db_actor.tell.call_args_list == expected_args_tell
+        assert fake_reporter.tell.call_args_list == expected_args_tell
 
         time_sleep.assert_called_once_with(fake_settings.VCENTER["POLL_FREQ"])
         tell.assert_called_once_with("continue")
@@ -181,16 +175,16 @@ class TestVCenterMonitor(object):
             "vm_name": event.vm.name,
             "vm_id": event.vm.vm}
         values = {"value": 1}
-        args = (
-            tags,
-            values,
-            fake_settings.INFLUXDB["EVENTS_MEASUREMENT"],
-            event.createdTime)
+        args = {
+            "tags": tags,
+            "values": values,
+            "measurement": fake_settings.MEASUREMENT["EVENTS_MEASUREMENT"],
+            "datetime": event.createdTime}
 
         return args
 
     def test_reconnect_on_success(self, mocker):
-        mocker.patch('migrationmonitor.common.db.InfluxDBActor')
+        mocker.patch('migrationmonitor.common.reporter.Reporter')
 
         log_error = mocker.patch.object(logger, 'error')
         _create_vcenter_connection = mocker.patch.object(
@@ -208,7 +202,7 @@ class TestVCenterMonitor(object):
             _create_vcenter_connection.return_value
 
     def test_fetch_vcenter_events_on_success(self, mocker):
-        mocker.patch('migrationmonitor.common.db.InfluxDBActor')
+        mocker.patch('migrationmonitor.common.reporter.Reporter')
 
         fake_settings = mocker.patch('migrationmonitor.settings')
         fake_settings.VCENTER = {

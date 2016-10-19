@@ -3,8 +3,8 @@ import time
 import libvirt
 
 from migrationmonitor.common import logger
-from migrationmonitor.libvirt import utils
-from migrationmonitor.libvirt import watcher
+from migrationmonitor.libvirt_monitor import utils
+from migrationmonitor.libvirt_monitor import watcher
 
 
 class TestLibvirtDomainWatcher(object):
@@ -84,13 +84,13 @@ class TestDomainJobMonitorActor(object):
         fake_conn.lookupByID.return_value = fake_dom
 
         fake_settings = mocker.patch('migrationmonitor.settings')
-        fake_settings.INFLUXDB = {"JOBINFO_MEASUREMENT": "fake_measurement"}
+        fake_settings.MEASUREMENT = {"JOBINFO_MEASUREMENT": "fake_measurement"}
         fake_settings.LIBVIRT = {"POLL_FREQ": 9000}
 
         fake_dom_id = 12345
         fake_migration_monitors = {}
-        fake_db_actor = mocker.stub()
-        fake_db_actor.tell = mocker.stub()
+        fake_reporter = mocker.stub()
+        fake_reporter.tell = mocker.stub()
 
         log_debug = mocker.patch.object(logger, 'debug')
         time_sleep = mocker.patch.object(time, 'sleep')
@@ -101,18 +101,19 @@ class TestDomainJobMonitorActor(object):
             fake_conn,
             fake_dom_id,
             fake_migration_monitors,
-            fake_db_actor)
+            fake_reporter)
         dom_actor._on_receive(('foo', fake_dom_id))
 
         fake_conn.lookupByID.assert_called_once_with(fake_dom_id)
         fake_dom.jobStats.assert_called_once_with()
         log_debug.assert_called_once_with(
             "jobStats: {0}".format(fake_dom.jobStats.return_value))
-        fake_db_actor.tell.assert_called_once_with(({
-            "domain_id": fake_dom_id,
-            "domain_name": fake_dom.name.return_value},
-            fake_dom.jobStats.return_value,
-            fake_settings.INFLUXDB["JOBINFO_MEASUREMENT"]))
+        fake_reporter.tell.assert_called_once_with({
+            "tags": {
+                "domain_id": fake_dom_id,
+                "domain_name": fake_dom.name.return_value},
+            "values": fake_dom.jobStats.return_value,
+            "measurement": fake_settings.MEASUREMENT["JOBINFO_MEASUREMENT"]})
         time_sleep.assert_called_once_with(fake_settings.LIBVIRT["POLL_FREQ"])
         tell.assert_called_once_with(("continue", fake_dom_id))
 

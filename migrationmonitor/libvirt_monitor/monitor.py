@@ -1,13 +1,13 @@
 import libvirt
 import six
 
-import migrationmonitor.common.logger as log
-import migrationmonitor.libvirt_monitor.watcher
-import migrationmonitor.settings
 from migrationmonitor.common import actor
-from migrationmonitor.common import db
+from migrationmonitor.common import reporter
 from migrationmonitor.libvirt_monitor import utils
 from migrationmonitor.libvirt_monitor import watcher
+import migrationmonitor.common.logger as log
+import migrationmonitor.settings
+
 
 EVENT_DETAILS = (
     ("Added", "Updated"),
@@ -45,8 +45,8 @@ class LibvirtMonitor(object):
         self.connections = []
         self.migration_monitors = {}
         self.settings = migrationmonitor.settings
-        self.db_actor = db.InfluxDBActor()
-        self.db_actor.start()
+        self.reporter = reporter.Reporter()
+        self.reporter.start()
 
     def start(self):
         """Start the actor
@@ -65,7 +65,7 @@ class LibvirtMonitor(object):
         doms_watcher_thread = watcher.LibvirtDomainsWatcher(
             conn,
             self.migration_monitors,
-            self.db_actor)
+            self.reporter)
         doms_watcher_thread.start()
 
     def _register_libvirt_callbacks(self, conn):
@@ -113,8 +113,10 @@ class LibvirtMonitor(object):
             "event_detail": EVENT_DETAILS[event][detail]}
         values = {"value": 1 if boundary_event else 0}
 
-        self.db_actor.tell((tags, values,
-                            self.settings.INFLUXDB["EVENTS_MEASUREMENT"]))
+        self.reporter.tell({
+            "tags": tags,
+            "values": values,
+            "measurement": self.settings.MEASUREMENT["EVENTS_MEASUREMENT"]})
 
     def _conn_close_handler(self, conn, reason, opaque):
         log.error("Closed connection: %s: %s",
@@ -124,7 +126,7 @@ class LibvirtMonitor(object):
         if reason == 0:
             actor.defer(
                 self._reconnect,
-                seconds=self.settings.INFLUXDB["RECONNECT"])
+                seconds=self.settings.INFLUXDB_CONF["RECONNECT"])
 
     def _reconnect(self, conn):
         uri = conn.getURI()
@@ -140,7 +142,7 @@ class LibvirtMonitor(object):
             log.debug("Destroy DomJobMonitorActor for domain with id %s",
                       dom_id)
 
-        self.db_actor.stop()
+        self.reporter.stop()
         for conn in self.connections:
             log.debug("Closing " + conn.getURI())
             conn.close()

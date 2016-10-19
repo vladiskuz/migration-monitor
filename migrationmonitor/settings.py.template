@@ -1,17 +1,20 @@
 from datetime import timedelta
 
-DEBUG = True
+# Start migration-monitor in debug mode
+DEBUG = False
 
 PID_FILE = "/tmp/migration-monitor.pid"
 LOG_FILE = "/tmp/migration-monitor.log"
 
-PROVIDER = "VCENTER"  # or "LIBVIRT"
+PROVIDER = "LIBVIRT"  # or "VCENTER"
 
+# Configuration for libvirt provider
 LIBVIRT = {
     "URI": ["qemu:///system"],
     "POLL_FREQ": 0.1,
 }
 
+# Configuration for vcenter provider
 VCENTER = {
     "HOST": '',
     "USERNAME": '',
@@ -24,18 +27,34 @@ VCENTER = {
     "EVENTS_HISTORY_WINDOW_UPPER_BOUND": timedelta(minutes=1)
 }
 
-INFLUXDB = {
-    "HOST": '',
-    "PORT": '',
-    "USERNAME": '',
-    "PASSWORD": '',
-    "DATABASE": '',
+MEASUREMENT = {
     "EVENTS_MEASUREMENT": 'events',
     "JOBINFO_MEASUREMENT": 'jobinfo',
+}
+
+INFLUXDB = "INFLUXDB"
+ZMQ = "ZMQ"
+
+# Select where data will be reported. INFLUXDB and ZMQ available.
+REPORT_TO = [ZMQ]
+
+# Configuration for InfluxDB reporter
+INFLUXDB_CONF = {
+    "HOST": '',
+    "PORT": '8086',
+    "USERNAME": '',
+    "PASSWORD": '',
+    "DATABASE": 'libvirt',
     "RECONNECT": 10,  # sec
 
     "TAGS": {
         "scenario": "",
         "run": "",
     }
+}
+
+# Configuration for ZMQ reporter
+ZMQ_CONF = {
+    "HOST": '*',
+    "PORT": '5556',
 }

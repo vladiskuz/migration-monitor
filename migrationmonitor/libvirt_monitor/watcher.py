@@ -16,19 +16,19 @@ class LibvirtDomainsWatcher(threading.Thread):
     handling.
     """
 
-    def __init__(self, conn, migration_monitors, db_actor, interval=0.15):
+    def __init__(self, conn, migration_monitors, reporter, interval=0.15):
         super(LibvirtDomainsWatcher, self).__init__()
         self.daemon = True
 
         self.conn = conn
         self.interval = interval
         self.migration_monitors = migration_monitors
-        self.db_actor = db_actor
+        self.reporter = reporter
 
         self.doms_job_monitor = DomainsJobMonitorActorCreator(
             conn,
             self.migration_monitors,
-            self.db_actor)
+            self.reporter)
         self.doms_job_monitor.start()
 
     def run(self):
@@ -64,12 +64,12 @@ class DomainsJobMonitorActorCreator(actor.BaseActor):
     that will tracks libvirt job stats about the particular domain.
     """
 
-    def __init__(self, conn, migration_monitors, db_actor):
+    def __init__(self, conn, migration_monitors, reporter):
         super(DomainsJobMonitorActorCreator, self).__init__()
         self.daemon = True
         self.conn = conn
         self.migration_monitors = migration_monitors
-        self.db_actor = db_actor
+        self.reporter = reporter
 
     def _on_receive(self, msg):
         cmd, dom_id = msg
@@ -78,7 +78,7 @@ class DomainsJobMonitorActorCreator(actor.BaseActor):
             self.conn,
             dom_id,
             self.migration_monitors,
-            self.db_actor)
+            self.reporter)
         self.migration_monitors[dom_id] = dom_actor
         dom_actor.start()
         dom_actor.tell(('start_job_monitoring', dom_id))
@@ -94,24 +94,27 @@ class DomainJobMonitorActor(actor.BaseActor):
     """Gets domain job stats and put it into database.
     """
 
-    def __init__(self, conn, dom_id, migration_monitors, db_actor):
+    def __init__(self, conn, dom_id, migration_monitors, reporter):
         super(DomainJobMonitorActor, self).__init__()
         self.conn = conn
         self.dom_id = dom_id
         self.settings = migrationmonitor.settings
         self.migration_monitors = migration_monitors
-        self.db_actor = db_actor
+        self.reporter = reporter
 
     def _on_receive(self, msg):
         _, dom_id = msg
         try:
             dom = self.conn.lookupByID(self.dom_id)
             job_info = dom.jobStats()
+            type(job_info)
             log.debug("jobStats: {0}".format(job_info))
-            self.db_actor.tell(({"domain_id": self.dom_id,
-                                 "domain_name": dom.name()},
-                                job_info,
-                                self.settings.INFLUXDB["JOBINFO_MEASUREMENT"]))
+            self.reporter.tell({
+                "tags": {"domain_id": self.dom_id,
+                         "domain_name": dom.name()},
+                "values": job_info,
+                "measurement":
+                    self.settings.MEASUREMENT["JOBINFO_MEASUREMENT"]})
 
             time.sleep(self.settings.LIBVIRT["POLL_FREQ"])
             self.tell(("continue", dom_id))

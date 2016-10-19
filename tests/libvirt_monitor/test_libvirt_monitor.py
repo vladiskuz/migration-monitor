@@ -1,13 +1,13 @@
 from migrationmonitor.common import actor
 from migrationmonitor.common import logger
-from migrationmonitor.libvirt import monitor
-from migrationmonitor.libvirt import utils
+from migrationmonitor.libvirt_monitor import monitor
+from migrationmonitor.libvirt_monitor import utils
 
 
 class TestLibvirtMonitor(object):
 
     def test_start_on_success(self, mocker):
-        mocker.patch('migrationmonitor.common.db.InfluxDBActor')
+        mocker.patch('migrationmonitor.common.reporter.Reporter')
         start_event_loop = mocker.patch.object(utils, 'start_event_loop')
 
         _start = mocker.patch.object(monitor.LibvirtMonitor, '_start')
@@ -23,11 +23,11 @@ class TestLibvirtMonitor(object):
         assert _start.call_args_list == expected_args_list
 
     def test_underscore_start_on_success(self, mocker):
-        fake_db_actor = mocker.stub()
-        fake_db_actor.start = mocker.stub()
-        InfluxDBActor = mocker.patch(
-            'migrationmonitor.common.db.InfluxDBActor')
-        InfluxDBActor.return_value = fake_db_actor
+        fake_reporter = mocker.stub()
+        fake_reporter.start = mocker.stub()
+        Reporter = mocker.patch(
+            'migrationmonitor.common.reporter.Reporter')
+        Reporter.return_value = fake_reporter
 
         fake_conn = mocker.stub()
         openReadOnly = mocker.patch('libvirt.openReadOnly')
@@ -39,7 +39,7 @@ class TestLibvirtMonitor(object):
         fake_doms_watcher = mocker.stub()
         fake_doms_watcher.start = mocker.stub()
         LibvirtDomainsWatcher = mocker.patch(
-            'migrationmonitor.libvirt.watcher.LibvirtDomainsWatcher')
+            'migrationmonitor.libvirt_monitor.watcher.LibvirtDomainsWatcher')
         LibvirtDomainsWatcher.return_value = fake_doms_watcher
         fake_uri = 'fake_uri'
 
@@ -53,11 +53,11 @@ class TestLibvirtMonitor(object):
         LibvirtDomainsWatcher.assert_called_once_with(
             fake_conn,
             libvirt_monitor.migration_monitors,
-            fake_db_actor)
+            fake_reporter)
         fake_doms_watcher.start.assert_called_once_with()
 
     def test_register_libvirt_callbacks_on_success(self, mocker):
-        mocker.patch('migrationmonitor.common.db.InfluxDBActor')
+        mocker.patch('migrationmonitor.common.reporter.Reporter')
         fake_conn = mocker.stub()
         fake_conn.registerCloseCallback = mocker.stub()
         _conn_close_handler = mocker.patch.object(
@@ -84,14 +84,14 @@ class TestLibvirtMonitor(object):
         fake_conn.setKeepAlive.assert_called_once_with(5, 3)
 
     def test_domain_event_handler_with_values_equal_one(self, mocker):
-        fake_db_actor = mocker.stub()
-        fake_db_actor.start = mocker.stub()
-        fake_db_actor.tell = mocker.stub()
-        InfluxDBActor = mocker.patch(
-            'migrationmonitor.common.db.InfluxDBActor')
-        InfluxDBActor.return_value = fake_db_actor
+        fake_reporter = mocker.stub()
+        fake_reporter.start = mocker.stub()
+        fake_reporter.tell = mocker.stub()
+        Reporter = mocker.patch(
+            'migrationmonitor.common.reporter.Reporter')
+        Reporter.return_value = fake_reporter
         fake_settings = mocker.patch('migrationmonitor.settings')
-        fake_settings.INFLUXDB = {"EVENTS_MEASUREMENT": "fake_measurement"}
+        fake_settings.MEASUREMENT = {"EVENTS_MEASUREMENT": "fake_measurement"}
 
         fake_domain = mocker.stub()
         fake_domain.ID = mocker.stub()
@@ -128,20 +128,20 @@ class TestLibvirtMonitor(object):
             fake_domain.name.return_value,
             monitor.EVENT_STRINGS[fake_event],
             monitor.EVENT_DETAILS[fake_event][fake_detail])
-        fake_db_actor.tell.assert_called_once_with((
-            tags,
-            {"value": 1},
-            fake_settings.INFLUXDB["EVENTS_MEASUREMENT"]))
+        fake_reporter.tell.assert_called_once_with({
+            "tags": tags,
+            "values": {"value": 1},
+            "measurement": fake_settings.MEASUREMENT["EVENTS_MEASUREMENT"]})
 
     def test_domain_event_handler_with_values_equal_zero(self, mocker):
-        fake_db_actor = mocker.stub()
-        fake_db_actor.start = mocker.stub()
-        fake_db_actor.tell = mocker.stub()
-        InfluxDBActor = mocker.patch(
-            'migrationmonitor.common.db.InfluxDBActor')
-        InfluxDBActor.return_value = fake_db_actor
+        fake_reporter = mocker.stub()
+        fake_reporter.start = mocker.stub()
+        fake_reporter.tell = mocker.stub()
+        Reporter = mocker.patch(
+            'migrationmonitor.common.reporter.Reporter')
+        Reporter.return_value = fake_reporter
         fake_settings = mocker.patch('migrationmonitor.settings')
-        fake_settings.INFLUXDB = {"EVENTS_MEASUREMENT": "fake_measurement"}
+        fake_settings.MEASUREMENT = {"EVENTS_MEASUREMENT": "fake_measurement"}
 
         fake_domain = mocker.stub()
         fake_domain.ID = mocker.stub()
@@ -177,16 +177,16 @@ class TestLibvirtMonitor(object):
             fake_domain.name.return_value,
             monitor.EVENT_STRINGS[fake_event],
             monitor.EVENT_DETAILS[fake_event][fake_detail])
-        fake_db_actor.tell.assert_called_once_with((
-            tags,
-            {"value": 0},
-            fake_settings.INFLUXDB["EVENTS_MEASUREMENT"]))
+        fake_reporter.tell.assert_called_once_with({
+            "tags": tags,
+            "values": {"value": 0},
+            "measurement": fake_settings.MEASUREMENT["EVENTS_MEASUREMENT"]})
 
     def test_conn_close_handler_with_reason_equal_zero(self, mocker):
-        mocker.patch('migrationmonitor.common.db.InfluxDBActor')
+        mocker.patch('migrationmonitor.common.reporter.Reporter')
 
         fake_settings = mocker.patch('migrationmonitor.settings')
-        fake_settings.INFLUXDB = {"RECONNECT": 9000}
+        fake_settings.INFLUXDB_CONF = {"RECONNECT": 9000}
 
         fake_conn = mocker.stub()
         fake_conn.getURI = mocker.stub()
@@ -211,13 +211,13 @@ class TestLibvirtMonitor(object):
             monitor.REASON_STRINGS[fake_reason])
         fake_defer.assert_called_once_with(
                 libvirt_monitor._reconnect,
-                seconds=fake_settings.INFLUXDB['RECONNECT'])
+                seconds=fake_settings.INFLUXDB_CONF['RECONNECT'])
 
     def test_conn_close_handler_with_reason_not_equal_zero(self, mocker):
-        mocker.patch('migrationmonitor.common.db.InfluxDBActor')
+        mocker.patch('migrationmonitor.common.reporter.Reporter')
 
         fake_settings = mocker.patch('migrationmonitor.settings')
-        fake_settings.INFLUXDB = {"RECONNECT": 9000}
+        fake_settings.INFLUXDB_CONF = {"RECONNECT": 9000}
 
         fake_conn = mocker.stub()
         fake_conn.getURI = mocker.stub()
@@ -243,7 +243,7 @@ class TestLibvirtMonitor(object):
         fake_defer.assert_not_called()
 
     def test_reconnect_on_success(self, mocker):
-        mocker.patch('migrationmonitor.common.db.InfluxDBActor')
+        mocker.patch('migrationmonitor.common.reporter.Reporter')
 
         fake_conn = mocker.stub()
         fake_conn.getURI = mocker.stub()
@@ -264,12 +264,12 @@ class TestLibvirtMonitor(object):
         _start.assert_called_once_with(fake_conn.getURI.return_value)
 
     def test_stop_on_success(self, mocker):
-        fake_db_actor = mocker.stub()
-        fake_db_actor.start = mocker.stub()
-        fake_db_actor.stop = mocker.stub()
-        InfluxDBActor = mocker.patch(
-            'migrationmonitor.common.db.InfluxDBActor')
-        InfluxDBActor.return_value = fake_db_actor
+        fake_reporter = mocker.stub()
+        fake_reporter.start = mocker.stub()
+        fake_reporter.stop = mocker.stub()
+        Reporter = mocker.patch(
+            'migrationmonitor.common.reporter.Reporter')
+        Reporter.return_value = fake_reporter
 
         mocker.patch.object(logger, 'debug')
 
@@ -295,6 +295,6 @@ class TestLibvirtMonitor(object):
 
         fake_dom_actor1.stop.assert_called_once_with()
         fake_dom_actor2.stop.assert_called_once_with()
-        fake_db_actor.stop.assert_called_once_with()
+        fake_reporter.stop.assert_called_once_with()
         fake_conn1.close.assert_called_once_with()
         fake_conn2.close.assert_called_once_with()
