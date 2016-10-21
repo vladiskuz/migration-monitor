@@ -3,6 +3,9 @@ all: containers wait provision
 clean:
 	./destroy.sh
 
+clean_hard: clean
+	./delete_volumes.sh
+
 containers:
 	./boot.sh
 

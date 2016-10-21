@@ -21,7 +21,7 @@
             "libvirt_events.mean": "#70DBED"
           },
           "bars": false,
-          "datasource": "LV",
+          "datasource": "InfluxDB_Container",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -170,7 +170,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "LV",
+          "datasource": "InfluxDB_Container",
           "editable": true,
           "error": false,
           "fill": 0,
@@ -274,7 +274,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "LV",
+          "datasource": "InfluxDB_Container",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -386,7 +386,7 @@
             "net_sent": "#65C5DB"
           },
           "bars": false,
-          "datasource": "LV",
+          "datasource": "InfluxDB_Container",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -528,7 +528,7 @@
             "net_sent": "#65C5DB"
           },
           "bars": false,
-          "datasource": "LV",
+          "datasource": "InfluxDB_Container",
           "editable": true,
           "error": false,
           "fill": 1,
