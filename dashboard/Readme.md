@@ -4,7 +4,10 @@ Boot:
 
 	$ make
 
-Destroy everyting but volumes:
+Destroy everything but volumes:
 
 	$ make clean
-	
+
+Destroy everything including volumes:
+
+	$ make clean_hard
