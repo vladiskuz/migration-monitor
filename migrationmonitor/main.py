@@ -5,8 +5,8 @@ from daemonize import Daemonize
 
 from migrationmonitor import settings
 from migrationmonitor.common import logger as log
-from migrationmonitor.libvirt.monitor import LibvirtMonitor
-from migrationmonitor.vcenter.monitor import VCenterMonitor
+from migrationmonitor.libvirt_monitor.monitor import LibvirtMonitor
+from migrationmonitor.vcenter_monitor.monitor import VCenterMonitor
 
 
 def create_monitor(provider):

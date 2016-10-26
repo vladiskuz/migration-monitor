@@ -2,12 +2,12 @@ import libvirt
 import six
 
 import migrationmonitor.common.logger as log
-import migrationmonitor.libvirt.watcher
+import migrationmonitor.libvirt_monitor.watcher
 import migrationmonitor.settings
 from migrationmonitor.common import actor
 from migrationmonitor.common import db
-from migrationmonitor.libvirt import utils
-from migrationmonitor.libvirt import watcher
+from migrationmonitor.libvirt_monitor import utils
+from migrationmonitor.libvirt_monitor import watcher
 
 EVENT_DETAILS = (
     ("Added", "Updated"),

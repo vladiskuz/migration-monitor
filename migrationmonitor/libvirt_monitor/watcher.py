@@ -4,7 +4,7 @@ import threading
 import libvirt
 
 import migrationmonitor.settings
-from migrationmonitor.libvirt import utils
+from migrationmonitor.libvirt_monitor import utils
 
 from migrationmonitor.common import actor
 from migrationmonitor.common import logger as log
