@@ -1,6 +1,6 @@
 # Live migration monitor
 
-[![Build Status](https://travis-ci.org/rk4n/migration-monitor.svg?branch=master)](https://travis-ci.org/rk4n/migration-monitor)
+[![Build Status](https://travis-ci.org/rk4n/migration-monitor.svg?branch=master)](https://travis-ci.org/rk4n/migration-monitor) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/c57a0b891d7445ca9a1ab0421ffc7dac)](https://www.codacy.com/app/voffka-nikituk/migration-monitor?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=rk4n/migration-monitor&amp;utm_campaign=Badge_Grade)
 
 Since `easy_install` fails to setup the `libvirt`, run either `apt-get` or `pip` to install libvirt binding for python:
 
